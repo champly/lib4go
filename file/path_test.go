@@ -4,7 +4,7 @@ import "testing"
 
 func TestExists(t *testing.T) {
 	data := map[string]bool{
-		"/root":        true,
+		"/Users":       true,
 		"/setst":       false,
 		"path.go":      true,
 		"../README.md": true,
@@ -25,11 +25,11 @@ func TestAbs(t *testing.T) {
 	data := map[string]string{
 		"/root":        "/root",
 		"/setst":       "/setst",
-		"path.go":      "/home/champly/golang/src/github.com/champly/lib4go/file/path.go",
-		"../README.md": "/home/champly/golang/src/github.com/champly/lib4go/README.md",
-		"../":          "/home/champly/golang/src/github.com/champly/lib4go",
-		".":            "/home/champly/golang/src/github.com/champly/lib4go/file",
-		"!!!":          "/home/champly/golang/src/github.com/champly/lib4go/file/!!!",
+		"path.go":      "/Users/champly/go/src/github.com/champly/lib4go/file/path.go",
+		"../README.md": "/Users/champly/go/src/github.com/champly/lib4go/README.md",
+		"../":          "/Users/champly/go/src/github.com/champly/lib4go",
+		".":            "/Users/champly/go/src/github.com/champly/lib4go/file",
+		"!!!":          "/Users/champly/go/src/github.com/champly/lib4go/file/!!!",
 	}
 
 	for path, expect := range data {
@@ -42,4 +42,12 @@ func TestAbs(t *testing.T) {
 			t.Errorf("test [file.Abs] fail: input is:%s, acutal is:%s, but expect is:%s", path, actual, expect)
 		}
 	}
+}
+
+func TestMd5(t *testing.T) {
+	t.Log(Md5("file.go"))
+}
+
+func TestCrc32(t *testing.T) {
+	t.Log(Crc32("file.go"))
 }
