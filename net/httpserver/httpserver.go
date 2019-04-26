@@ -27,6 +27,11 @@ type ccData struct {
 	Version   string `json:"version"`
 }
 
+type Context struct {
+	Request  *http.Request
+	Response http.ResponseWriter
+}
+
 type HttpServer struct {
 	mux       *http.ServeMux
 	closeChan chan int
@@ -50,23 +55,30 @@ func New() *HttpServer {
 	return h
 }
 
-func (h *HttpServer) hookHandler(handler func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+func (h *HttpServer) hookHandler(handler func(ctx *Context)) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		h.before(r)
-		handler(w, r)
+		ctx := &Context{r, w}
+		handler(ctx)
 		h.after(r)
 	}
 }
 
 func (h *HttpServer) before(r *http.Request) {
-	sid := getGUID()
 	v := r.Header.Get("__call_chain_v__")
 	if v == "" {
 		v = "1"
+	} else {
+		v += ".1"
 	}
 
-	r.Header.Add("__call_chain__", sid)
-	r.Header.Add("__call_chain_v__", v)
+	sid := r.Header.Get("__call_chain__")
+	if sid == "" {
+		sid = getGUID()
+		r.Header.Set("__call_chain__", sid)
+	}
+
+	r.Header.Set("__call_chain_v__", v)
 
 	h.data <- ccData{
 		SessionID: sid,
@@ -79,6 +91,7 @@ func (h *HttpServer) before(r *http.Request) {
 }
 
 func (h *HttpServer) after(r *http.Request) {
+	fmt.Println(r.Header)
 	sid := r.Header.Get("__call_chain__")
 	v := r.Header.Get("__call_chain_v__")
 	if v != "" {
@@ -103,7 +116,7 @@ func (h *HttpServer) after(r *http.Request) {
 	}
 }
 
-func (h *HttpServer) HandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request)) {
+func (h *HttpServer) HandleFunc(pattern string, handler func(ctx *Context)) {
 	h.mux.HandleFunc(pattern, h.hookHandler(handler))
 }
 
@@ -130,15 +143,18 @@ END:
 				break CONTINUE
 			}
 			if !ok {
-				res, err := h.esClient.CreateIndex("call_chain").Do(context.Background())
-				if err != nil {
-					fmt.Println("create index err:", err)
-					break CONTINUE
-				}
-				if !res.Acknowledged {
-					fmt.Println("create index fail:", res)
-					break CONTINUE
-				}
+				// res, err := h.esClient.CreateIndex("call_chain").Do(context.Background())
+				h.esClient.CreateIndex("call_chain").Do(context.Background())
+				// if err != nil {
+				// if !strings.Contains("already exists", err.Error()) {
+				// fmt.Println("create index err:", err)
+				// break CONTINUE
+				// }
+				// }
+				// if !res.Acknowledged {
+				// fmt.Println("create index fail:", res)
+				// break CONTINUE
+				// }
 			}
 
 			b, _ := json.Marshal(d)
