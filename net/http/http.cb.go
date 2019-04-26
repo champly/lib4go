@@ -6,7 +6,7 @@ import (
 
 type IHttpCb interface {
 	Before(req *http.Request)
-	After(resp *http.Response, err error)
+	After(req *http.Request, resp *http.Response, err error)
 }
 
 type callChian struct {
@@ -30,6 +30,6 @@ func newCbRoundTrip(rt http.RoundTripper, cb IHttpCb) http.RoundTripper {
 func (c *callChian) RoundTrip(req *http.Request) (resp *http.Response, err error) {
 	c.cb.Before(req)
 	resp, err = c.rt.RoundTrip(req)
-	c.cb.After(resp, err)
+	c.cb.After(req, resp, err)
 	return resp, err
 }
