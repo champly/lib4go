@@ -17,7 +17,7 @@ func (p *printCB) Before(req *http.Request) {
 	fmt.Println("method:", req.Method)
 }
 
-func (p *printCB) After(resp *http.Response, err error) {
+func (p *printCB) After(req *http.Request, resp *http.Response, err error) {
 	dur := time.Since(p.start)
 	fmt.Println("sum use:", dur)
 	if err != nil {

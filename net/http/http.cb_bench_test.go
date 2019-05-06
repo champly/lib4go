@@ -11,13 +11,13 @@ type benchCB struct {
 func (b *benchCB) Before(req *http.Request) {
 }
 
-func (b *benchCB) After(resp *http.Response, err error) {
+func (b *benchCB) After(req *http.Request, resp *http.Response, err error) {
 }
 
 func BenchmarkNewClientWithCb(b *testing.B) {
 	bcb := &benchCB{}
 	for i := 0; i < b.N; i++ {
 		client := NewClientWithCb(bcb)
-		client.Get("http://www.baidu.com")
+		client.Get("http://localhost:9090/test")
 	}
 }
