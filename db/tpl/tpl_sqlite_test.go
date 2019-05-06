@@ -33,10 +33,10 @@ func TestSqliteTPLGetContext(t *testing.T) {
 	}
 
 	tpl = "select seq_wxaccountmenu_auto_id.nextval from where |id \r\nand &name"
-	except = "select seq_wxaccountmenu_auto_id.nextval from where or id=? \r\nand and name=?"
+	except = "select seq_wxaccountmenu_auto_id.nextval from where id=? \r\nand and name=?"
 	actual, params = sqlite.GetSQLContext(tpl, input)
 	if actual != except || len(params) != 2 || params[0] != input["id"] || params[1] != input["name"] {
-		t.Error("GetSQLContext解析参数有误")
+		t.Errorf("GetSQLContext解析参数有误:actual:%s, except:%s, len(params):%d, params:%v", actual, except, len(params), params)
 	}
 
 	tpl = "select seq_wxaccountmenu_auto_id.nextval from where ~id~name~test"

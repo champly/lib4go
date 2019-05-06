@@ -12,7 +12,7 @@ func TestORCTPLgetSPName(t *testing.T) {
 		",order_create(:1,:2,:3)":  "begin order_create(:1,:2,:3);end;",
 		";order_create(:1,:2,:3),": "begin order_create(:1,:2,:3);end;",
 		"#order_create(:1,:2,:3)":  "begin #order_create(:1,:2,:3);end;",
-		"": "begin ;end;",
+		"":                         "begin ;end;",
 	}
 	for i, except := range input {
 		if orcl.getSPName(i) != except {
@@ -88,7 +88,7 @@ func TestORCTPLGetContext(t *testing.T) {
 
 	//正确参数解析
 	tpl = "update order_main set date=sysdate ~name ~status where id=@id"
-	except = `update order_main set date=sysdate ,name=:1  where id=:2`
+	except = `update order_main set date=sysdate ,name=:1 where id=:2`
 	actual, params = orcl.GetSQLContext(tpl, input)
 	if actual != except || len(params) != 2 || params[1] != input["id"] || params[0] != input["name"] {
 		t.Errorf("GetSQLContext解析参数有误:actual:%s,except:%s", actual, except)
@@ -113,7 +113,7 @@ func TestORCTPLGetContext(t *testing.T) {
 
 	// 没有参数的解析
 	tpl = "udpate order_main set status=|status &status ~status"
-	except = `udpate order_main set status=  `
+	except = `udpate order_main set status= `
 	actual, params = orcl.GetSQLContext(tpl, input)
 	if actual != except || len(params) != 0 {
 		t.Errorf("GetSQLContext解析参数有误:actual:%s,except:%s", actual, except)
@@ -269,5 +269,4 @@ func TestORCTPLReplace(t *testing.T) {
 	if actual != except {
 		t.Error("Replace解析参数有误", actual)
 	}
-
 }
