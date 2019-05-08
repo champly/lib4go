@@ -8,7 +8,7 @@ import (
 	"github.com/champly/lib4go/security/md5"
 )
 
-func GetGuid() string {
+func GetGUID() string {
 	b := make([]byte, 48)
 	if _, err := io.ReadFull(rand.Reader, b); err != nil {
 		return ""
