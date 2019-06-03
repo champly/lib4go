@@ -159,6 +159,7 @@ func (r *RemoteClient) ScpDir(localDir, remoteDir string) error {
 	if err != nil {
 		return err
 	}
+
 	for _, f := range dir {
 		rf := fmt.Sprintf(fmt.Sprintf("%s/%s", remoteDir, f.Name()))
 		lf := fmt.Sprintf(fmt.Sprintf("%s/%s", localDir, f.Name()))
