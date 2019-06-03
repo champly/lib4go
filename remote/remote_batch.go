@@ -118,6 +118,17 @@ func (b *BatchRemoteClient) UseBashExecScript(remoteFile, script string) ([]Resp
 	return rsl, nil
 }
 
+func (b *BatchRemoteClient) Foreach(f func(r *RemoteClient) error) ([]ResponseMsg, error) {
+	rsl := make([]ResponseMsg, b.count)
+	for _, c := range b.client {
+		go func(c *RemoteClient) {
+			err := f(c)
+			rsl = append(rsl, ResponseMsg{Error: err, Host: c.Host})
+		}(c)
+	}
+	return rsl, nil
+}
+
 func (b *BatchRemoteClient) Close() {
 	b.l.Lock()
 	defer b.l.Unlock()

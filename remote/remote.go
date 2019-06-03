@@ -15,6 +15,11 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+var (
+	clientList     map[string]*ssh.Client
+	sftpClientList map[string]*sftp.Client
+)
+
 type ServerInfo struct {
 	User     string
 	Password string
@@ -29,7 +34,16 @@ type RemoteClient struct {
 	l          sync.Mutex
 }
 
+func init() {
+	clientList = map[string]*ssh.Client{}
+	sftpClientList = map[string]*sftp.Client{}
+}
+
 func getSSHConnect(info *ServerInfo) (*ssh.Client, error) {
+	if c, ok := clientList[info.Host]; ok {
+		return c, nil
+	}
+
 	config := &ssh.ClientConfig{
 		User: info.User,
 		Auth: []ssh.AuthMethod{
@@ -39,7 +53,12 @@ func getSSHConnect(info *ServerInfo) (*ssh.Client, error) {
 			return nil
 		},
 	}
-	return ssh.Dial("tcp", fmt.Sprintf("%s:%d", info.Host, info.Port), config)
+	c, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", info.Host, info.Port), config)
+	if err != nil {
+		return nil, err
+	}
+	clientList[info.Host] = c
+	return c, nil
 }
 
 func NewRemoteClient(info *ServerInfo) (*RemoteClient, error) {
@@ -87,6 +106,11 @@ func (r *RemoteClient) getSftpClient() error {
 		return nil
 	}
 
+	if sc, ok := sftpClientList[r.Host]; ok {
+		r.sftpClient = sc
+		return nil
+	}
+
 	r.l.Lock()
 	defer r.l.Unlock()
 
@@ -98,6 +122,7 @@ func (r *RemoteClient) getSftpClient() error {
 	if err != nil {
 		return err
 	}
+	sftpClientList[r.Host] = sc
 	r.sftpClient = sc
 	return nil
 }
