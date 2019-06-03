@@ -3,6 +3,7 @@ package remote
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -74,6 +75,7 @@ func NewRemoteClient(info *ServerInfo) (*RemoteClient, error) {
 }
 
 func (r *RemoteClient) Exec(cmd string) (string, error) {
+	fmt.Println("cmd:", cmd)
 	session, err := r.client.NewSession()
 	if err != nil {
 		return "", err
@@ -81,6 +83,10 @@ func (r *RemoteClient) Exec(cmd string) (string, error) {
 	defer session.Close()
 
 	stdout, err := session.StdoutPipe()
+	if err != nil {
+		return "", err
+	}
+	stderr, err := session.StderrPipe()
 	if err != nil {
 		return "", err
 	}
@@ -95,9 +101,30 @@ func (r *RemoteClient) Exec(cmd string) (string, error) {
 			return "", err
 		}
 		if n == 0 {
-			return bf.String(), nil
+			// return bf.String(), nil
+			break
 		}
 		bf.Write(buf[:n])
+	}
+
+	reader = bufio.NewReader(stderr)
+	bfe := new(bytes.Buffer)
+	bufe := make([]byte, 1024)
+	for {
+		n, err := reader.Read(bufe)
+		if err != nil && err != io.EOF {
+			return "", err
+		}
+		if n == 0 {
+			if strings.TrimSpace(bfe.String()) == "" {
+				return bf.String(), nil
+			}
+			if strings.TrimSpace(bf.String()) != "" {
+				return bf.String() + bfe.String(), nil
+			}
+			return bf.String(), errors.New(bfe.String())
+		}
+		bfe.Write(bufe[:n])
 	}
 }
 
@@ -128,6 +155,7 @@ func (r *RemoteClient) getSftpClient() error {
 }
 
 func (r *RemoteClient) ScpFile(file string, remoteFile string) error {
+	fmt.Println("scp file:", file, remoteFile)
 	if err := r.getSftpClient(); err != nil {
 		return err
 	}
@@ -149,6 +177,7 @@ func (r *RemoteClient) ScpFile(file string, remoteFile string) error {
 }
 
 func (r *RemoteClient) ScpDir(localDir, remoteDir string) error {
+	fmt.Println("scp dir:", localDir, remoteDir)
 	if err := r.getSftpClient(); err != nil {
 		return err
 	}
@@ -194,6 +223,7 @@ func (r *RemoteClient) CopyDir(localDir, remoteDir string) error {
 }
 
 func (r *RemoteClient) UseBashExecScript(remoteFile, script string) (string, error) {
+	fmt.Println("sh:", remoteFile)
 	if err := r.getSftpClient(); err != nil {
 		return "", err
 	}
