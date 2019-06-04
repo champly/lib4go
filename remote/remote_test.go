@@ -50,5 +50,10 @@ func TestExec(t *testing.T) {
 		t.Error(err)
 		return
 	}
+
+	// scp dir
+	if err = client.ScpDir("/Users/champly/Documents/kops/test/k8s", "/root/tmp/rpm"); err != nil {
+		t.Error(err)
+	}
 	t.Log(r)
 }

@@ -157,6 +157,7 @@ func (r *RemoteClient) closeSftpClient() {
 	delete(sftpClientList, r.Host)
 	if r.sftpClient != nil {
 		r.sftpClient.Close()
+		r.sftpClient = nil
 	}
 	return
 }
