@@ -250,5 +250,6 @@ func (r *RemoteClient) UseBashExecScript(remoteFile, script string) (string, err
 }
 
 func (r *RemoteClient) Close() {
+	delete(clientList, r.Host)
 	r.client.Close()
 }
