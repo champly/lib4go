@@ -76,6 +76,8 @@ func NewRemoteClient(info *ServerInfo) (*RemoteClient, error) {
 
 func (r *RemoteClient) Exec(cmd string) (string, error) {
 	fmt.Println("cmd:", cmd)
+	r.closeSftpClient()
+
 	session, err := r.client.NewSession()
 	if err != nil {
 		return "", err
@@ -101,7 +103,6 @@ func (r *RemoteClient) Exec(cmd string) (string, error) {
 			return "", err
 		}
 		if n == 0 {
-			// return bf.String(), nil
 			break
 		}
 		bf.Write(buf[:n])
@@ -132,12 +133,6 @@ func (r *RemoteClient) getSftpClient() error {
 	if r.sftpClient != nil {
 		return nil
 	}
-
-	if sc, ok := sftpClientList[r.Host]; ok {
-		r.sftpClient = sc
-		return nil
-	}
-
 	r.l.Lock()
 	defer r.l.Unlock()
 
@@ -145,6 +140,10 @@ func (r *RemoteClient) getSftpClient() error {
 		return nil
 	}
 
+	if sc, ok := sftpClientList[r.Host]; ok {
+		r.sftpClient = sc
+		return nil
+	}
 	sc, err := sftp.NewClient(r.client)
 	if err != nil {
 		return err
@@ -154,11 +153,20 @@ func (r *RemoteClient) getSftpClient() error {
 	return nil
 }
 
+func (r *RemoteClient) closeSftpClient() {
+	delete(sftpClientList, r.Host)
+	if r.sftpClient != nil {
+		r.sftpClient.Close()
+	}
+	return
+}
+
 func (r *RemoteClient) ScpFile(file string, remoteFile string) error {
 	fmt.Println("scp file:", file, remoteFile)
 	if err := r.getSftpClient(); err != nil {
 		return err
 	}
+	// defer r.sftpClient.Close()
 
 	b, err := ioutil.ReadFile(file)
 	if err != nil {
@@ -181,6 +189,8 @@ func (r *RemoteClient) ScpDir(localDir, remoteDir string) error {
 	if err := r.getSftpClient(); err != nil {
 		return err
 	}
+	defer r.sftpClient.Close()
+
 	localDir = strings.TrimRight(localDir, "/")
 	remoteDir = strings.TrimRight(remoteDir, "/")
 
@@ -189,6 +199,7 @@ func (r *RemoteClient) ScpDir(localDir, remoteDir string) error {
 		return err
 	}
 
+	r.sftpClient.MkdirAll(remoteDir)
 	for _, f := range dir {
 		rf := fmt.Sprintf(fmt.Sprintf("%s/%s", remoteDir, f.Name()))
 		lf := fmt.Sprintf(fmt.Sprintf("%s/%s", localDir, f.Name()))
@@ -196,11 +207,11 @@ func (r *RemoteClient) ScpDir(localDir, remoteDir string) error {
 		if f.IsDir() {
 			r.sftpClient.MkdirAll(rf)
 			if err = r.ScpDir(lf, rf); err != nil {
+				fmt.Println(err)
 				return err
 			}
 			continue
 		}
-		r.sftpClient.MkdirAll(remoteDir)
 		b, err := ioutil.ReadFile(lf)
 		if err != nil {
 			return err

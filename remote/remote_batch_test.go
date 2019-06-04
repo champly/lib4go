@@ -8,23 +8,23 @@ func TestBatchExec(t *testing.T) {
 	// create client
 	client, err := NewBatchRemoteClient([]*ServerInfo{
 		&ServerInfo{
-			Host:     "10.12.194.36",
+			Host:     "10.13.3.3",
 			User:     "root",
 			Password: "dmallk8s",
 			Port:     22,
 		},
-		&ServerInfo{
-			Host:     "10.12.194.94",
-			User:     "root",
-			Password: "dmallk8s",
-			Port:     22,
-		},
-		&ServerInfo{
-			Host:     "10.12.194.105",
-			User:     "root",
-			Password: "dmallk8s",
-			Port:     22,
-		},
+		// &ServerInfo{
+		// Host:     "10.13.3.4",
+		// User:     "root",
+		// Password: "dmallk8s",
+		// Port:     22,
+		// },
+		// &ServerInfo{
+		// Host:     "10.13.3.5",
+		// User:     "root",
+		// Password: "dmallk8s",
+		// Port:     22,
+		// },
 	})
 	if err != nil {
 		t.Error(err)
@@ -52,13 +52,15 @@ func TestBatchExec(t *testing.T) {
 	r, err = client.ScpFile("./remote.go", "/root/tmp/src/remote.go")
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	t.Log(r)
 
 	// scp dir
-	r, err = client.ScpDir("/Users/champly/Downloads/bak/rpm", "/root/tmp/rpm")
+	r, err = client.ScpDir("/Users/champly/Documents/kops/test/k8s", "/root/tmp/rpm")
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	t.Log(r)
 

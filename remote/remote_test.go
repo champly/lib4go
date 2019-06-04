@@ -7,7 +7,7 @@ import (
 func TestExec(t *testing.T) {
 	// create client
 	client, err := NewRemoteClient(&ServerInfo{
-		Host:     "10.12.194.36",
+		Host:     "10.13.3.3",
 		User:     "root",
 		Password: "dmallk8s",
 		Port:     22,
