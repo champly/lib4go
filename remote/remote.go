@@ -166,7 +166,6 @@ func (r *RemoteClient) ScpFile(file string, remoteFile string) error {
 	if err := r.getSftpClient(); err != nil {
 		return err
 	}
-	// defer r.sftpClient.Close()
 
 	b, err := ioutil.ReadFile(file)
 	if err != nil {
@@ -189,7 +188,6 @@ func (r *RemoteClient) ScpDir(localDir, remoteDir string) error {
 	if err := r.getSftpClient(); err != nil {
 		return err
 	}
-	defer r.sftpClient.Close()
 
 	localDir = strings.TrimRight(localDir, "/")
 	remoteDir = strings.TrimRight(remoteDir, "/")
