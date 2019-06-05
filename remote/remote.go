@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
+	"os"
 	"path"
 	"strings"
 	"sync"
@@ -19,6 +20,7 @@ import (
 var (
 	clientList     map[string]*ssh.Client
 	sftpClientList map[string]*sftp.Client
+	l              sync.Mutex
 )
 
 type ServerInfo struct {
@@ -32,7 +34,6 @@ type RemoteClient struct {
 	*ServerInfo
 	client     *ssh.Client
 	sftpClient *sftp.Client
-	l          sync.Mutex
 }
 
 func init() {
@@ -133,8 +134,8 @@ func (r *RemoteClient) getSftpClient() error {
 	if r.sftpClient != nil {
 		return nil
 	}
-	r.l.Lock()
-	defer r.l.Unlock()
+	l.Lock()
+	defer l.Unlock()
 
 	if r.sftpClient != nil {
 		return nil
@@ -211,24 +212,82 @@ func (r *RemoteClient) ScpDir(localDir, remoteDir string) error {
 			}
 			continue
 		}
-		b, err := ioutil.ReadFile(lf)
-		if err != nil {
-			return err
-		}
-		dsf, err := r.sftpClient.Create(rf)
-		if err != nil {
-			return err
-		}
-		dsf.Write(b)
+		r.ScpFile(lf, rf)
 	}
 	return nil
 }
 
-func (r *RemoteClient) CopyFile(file string, remoteFile string) error {
+func (r *RemoteClient) CopyFile(remoteFile string, localFile string) error {
+	fmt.Println("copy file:", remoteFile, localFile)
+	if err := r.getSftpClient(); err != nil {
+		return err
+	}
+
+	// b, err := ioutil.ReadAll(r.sftpClient.Reader)
+	rf, err := r.sftpClient.Open(remoteFile)
+	if err != nil {
+		return fmt.Errorf("remote read file %s fail:%s", remoteFile, err)
+	}
+	var buf bytes.Buffer
+	b := make([]byte, 1024)
+	for {
+		n, err := rf.Read(b)
+		if err != nil && io.EOF != err {
+			return err
+		}
+		if n == 0 {
+			break
+		}
+		buf.Read(b[:n])
+	}
+
+	if err := os.MkdirAll(path.Base(localFile), os.ModePerm.Perm()); err != nil {
+		return err
+	}
+
+	lf, err := os.OpenFile(localFile, os.O_RDWR|os.O_CREATE, 0644)
+	if err != nil {
+		return fmt.Errorf("create or read local file %s fail:%s", localFile, err)
+	}
+	defer lf.Close()
+
+	lf.WriteString(buf.String())
 	return nil
 }
 
-func (r *RemoteClient) CopyDir(localDir, remoteDir string) error {
+func (r *RemoteClient) CopyDir(remoteDir, localDir string) error {
+	fmt.Println("copy dir:", remoteDir, localDir)
+	if err := r.getSftpClient(); err != nil {
+		return err
+	}
+
+	dir, err := r.sftpClient.ReadDir(remoteDir)
+	if err != nil {
+		return err
+	}
+
+	if err := os.MkdirAll(localDir, os.ModePerm.Perm()); err != nil {
+		return err
+	}
+	for _, f := range dir {
+		rf := fmt.Sprintf(fmt.Sprintf("%s/%s", remoteDir, f.Name()))
+		lf := fmt.Sprintf(fmt.Sprintf("%s/%s", localDir, f.Name()))
+
+		if f.IsDir() {
+			if err := os.MkdirAll(lf, os.ModePerm.Perm()); err != nil {
+				return err
+			}
+
+			if err = r.CopyDir(rf, lf); err != nil {
+				fmt.Println(err)
+				return err
+			}
+			continue
+		}
+		if err := r.CopyFile(rf, lf); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -251,6 +310,10 @@ func (r *RemoteClient) UseBashExecScript(remoteFile, script string) (string, err
 }
 
 func (r *RemoteClient) Close() {
+	l.Lock()
+	defer l.Unlock()
+
+	r.closeSftpClient()
 	delete(clientList, r.Host)
 	r.client.Close()
 }

@@ -7,7 +7,7 @@ import (
 func TestExec(t *testing.T) {
 	// create client
 	client, err := NewRemoteClient(&ServerInfo{
-		Host:     "10.13.3.3",
+		Host:     "10.13.3.6",
 		User:     "root",
 		Password: "dmallk8s",
 		Port:     22,
@@ -17,43 +17,47 @@ func TestExec(t *testing.T) {
 		return
 	}
 	defer client.Close()
-	t.Log("connect success")
+	// t.Log("connect success")
 
-	// exec cmd
-	r, err := client.Exec("ls /")
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	t.Log(r)
+	// // exec cmd
+	// r, err := client.Exec("ls /")
+	// if err != nil {
+	// t.Error(err)
+	// return
+	// }
+	// t.Log(r)
 
-	r, err = client.Exec("date")
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	t.Log(r)
+	// r, err = client.Exec("date")
+	// if err != nil {
+	// t.Error(err)
+	// return
+	// }
+	// t.Log(r)
 
-	// scp file
-	if err = client.ScpFile("./remote.go", "/root/tmp/src/remote.go"); err != nil {
-		t.Error(err)
-	}
+	// // scp file
+	// if err = client.ScpFile("./remote.go", "/root/tmp/src/remote.go"); err != nil {
+	// t.Error(err)
+	// }
 
-	// scp dir
-	if err = client.ScpDir("/Users/champly/Downloads/bak/rpm", "/root/tmp/rpm"); err != nil {
-		t.Error(err)
-	}
+	// // scp dir
+	// if err = client.ScpDir("/Users/champly/Downloads/bak/rpm", "/root/tmp/rpm"); err != nil {
+	// t.Error(err)
+	// }
 
-	// scp bash an exec
-	r, err = client.UseBashExecScript("/root/tmp/exec.sh", "#!/bin/bash\ndate")
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	// // scp bash an exec
+	// r, err = client.UseBashExecScript("/root/tmp/exec.sh", "#!/bin/bash\ndate")
+	// if err != nil {
+	// t.Error(err)
+	// return
+	// }
 
 	// scp dir
 	if err = client.ScpDir("/Users/champly/Documents/kops/test/k8s", "/root/tmp/rpm"); err != nil {
 		t.Error(err)
 	}
-	t.Log(r)
+
+	// copy dir
+	if err = client.CopyDir("/etc/kubernetes", "/Users/champly/Downloads/kubernetes"); err != nil {
+		t.Error(err)
+	}
 }
