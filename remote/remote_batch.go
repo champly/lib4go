@@ -6,9 +6,9 @@ import (
 )
 
 type ResponseMsg struct {
-	Host  string
-	Msg   string
-	Error error
+	Host  string `json:"host,omitempty"`
+	Msg   string `json:"msg,omitempty"`
+	Error error  `json:"error,omitempty"`
 }
 
 type BatchRemoteClient struct {

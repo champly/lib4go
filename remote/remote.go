@@ -63,6 +63,39 @@ func getSSHConnect(info *ServerInfo) (*ssh.Client, error) {
 	return c, nil
 }
 
+func (r *RemoteClient) getSftpClient() error {
+	if r.sftpClient != nil {
+		return nil
+	}
+	l.Lock()
+	defer l.Unlock()
+
+	if r.sftpClient != nil {
+		return nil
+	}
+
+	if sc, ok := sftpClientList[r.Host]; ok {
+		r.sftpClient = sc
+		return nil
+	}
+	sc, err := sftp.NewClient(r.client)
+	if err != nil {
+		return err
+	}
+	sftpClientList[r.Host] = sc
+	r.sftpClient = sc
+	return nil
+}
+
+func (r *RemoteClient) closeSftpClient() {
+	delete(sftpClientList, r.Host)
+	if r.sftpClient != nil {
+		r.sftpClient.Close()
+		r.sftpClient = nil
+	}
+	return
+}
+
 func NewRemoteClient(info *ServerInfo) (*RemoteClient, error) {
 	client, err := getSSHConnect(info)
 	if err != nil {
@@ -76,7 +109,6 @@ func NewRemoteClient(info *ServerInfo) (*RemoteClient, error) {
 }
 
 func (r *RemoteClient) Exec(cmd string) (string, error) {
-	fmt.Println("cmd:", cmd)
 	r.closeSftpClient()
 
 	session, err := r.client.NewSession()
@@ -130,41 +162,7 @@ func (r *RemoteClient) Exec(cmd string) (string, error) {
 	}
 }
 
-func (r *RemoteClient) getSftpClient() error {
-	if r.sftpClient != nil {
-		return nil
-	}
-	l.Lock()
-	defer l.Unlock()
-
-	if r.sftpClient != nil {
-		return nil
-	}
-
-	if sc, ok := sftpClientList[r.Host]; ok {
-		r.sftpClient = sc
-		return nil
-	}
-	sc, err := sftp.NewClient(r.client)
-	if err != nil {
-		return err
-	}
-	sftpClientList[r.Host] = sc
-	r.sftpClient = sc
-	return nil
-}
-
-func (r *RemoteClient) closeSftpClient() {
-	delete(sftpClientList, r.Host)
-	if r.sftpClient != nil {
-		r.sftpClient.Close()
-		r.sftpClient = nil
-	}
-	return
-}
-
 func (r *RemoteClient) ScpFile(file string, remoteFile string) error {
-	fmt.Println("scp file:", file, remoteFile)
 	if err := r.getSftpClient(); err != nil {
 		return err
 	}
@@ -186,7 +184,6 @@ func (r *RemoteClient) ScpFile(file string, remoteFile string) error {
 }
 
 func (r *RemoteClient) ScpDir(localDir, remoteDir string) error {
-	fmt.Println("scp dir:", localDir, remoteDir)
 	if err := r.getSftpClient(); err != nil {
 		return err
 	}
@@ -218,7 +215,6 @@ func (r *RemoteClient) ScpDir(localDir, remoteDir string) error {
 }
 
 func (r *RemoteClient) CopyFile(remoteFile string, localFile string) error {
-	fmt.Println("copy file:", remoteFile, localFile)
 	if err := r.getSftpClient(); err != nil {
 		return err
 	}
@@ -248,7 +244,6 @@ func (r *RemoteClient) CopyFile(remoteFile string, localFile string) error {
 }
 
 func (r *RemoteClient) CopyDir(remoteDir, localDir string) error {
-	fmt.Println("copy dir:", remoteDir, localDir)
 	if err := r.getSftpClient(); err != nil {
 		return err
 	}
@@ -284,7 +279,6 @@ func (r *RemoteClient) CopyDir(remoteDir, localDir string) error {
 }
 
 func (r *RemoteClient) UseBashExecScript(remoteFile, script string) (string, error) {
-	fmt.Println("sh:", remoteFile)
 	if err := r.getSftpClient(); err != nil {
 		return "", err
 	}
