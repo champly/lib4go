@@ -223,22 +223,14 @@ func (r *RemoteClient) CopyFile(remoteFile string, localFile string) error {
 		return err
 	}
 
-	// b, err := ioutil.ReadAll(r.sftpClient.Reader)
-	rf, err := r.sftpClient.Open(remoteFile)
+	rf, err := r.sftpClient.OpenFile(remoteFile, os.O_RDONLY)
 	if err != nil {
 		return fmt.Errorf("remote read file %s fail:%s", remoteFile, err)
 	}
-	var buf bytes.Buffer
-	b := make([]byte, 1024)
-	for {
-		n, err := rf.Read(b)
-		if err != nil && io.EOF != err {
-			return err
-		}
-		if n == 0 {
-			break
-		}
-		buf.Read(b[:n])
+
+	b, err := ioutil.ReadAll(rf)
+	if err != nil {
+		return err
 	}
 
 	if err := os.MkdirAll(path.Base(localFile), os.ModePerm.Perm()); err != nil {
@@ -251,7 +243,7 @@ func (r *RemoteClient) CopyFile(remoteFile string, localFile string) error {
 	}
 	defer lf.Close()
 
-	lf.WriteString(buf.String())
+	lf.Write(b)
 	return nil
 }
 

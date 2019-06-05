@@ -51,10 +51,10 @@ func TestExec(t *testing.T) {
 	// return
 	// }
 
-	// scp dir
-	if err = client.ScpDir("/Users/champly/Documents/kops/test/k8s", "/root/tmp/rpm"); err != nil {
-		t.Error(err)
-	}
+	// // scp dir
+	// if err = client.ScpDir("/Users/champly/Documents/kops/test/k8s", "/root/tmp/rpm"); err != nil {
+	// t.Error(err)
+	// }
 
 	// copy dir
 	if err = client.CopyDir("/etc/kubernetes", "/Users/champly/Downloads/kubernetes"); err != nil {
