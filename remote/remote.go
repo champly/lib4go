@@ -317,3 +317,16 @@ func (r *RemoteClient) Close() {
 	delete(clientList, r.Host)
 	r.client.Close()
 }
+
+func Close() {
+	l.Lock()
+	defer l.Unlock()
+
+	for _, sc := range sftpClientList {
+		sc.Close()
+	}
+
+	for _, c := range clientList {
+		c.Close()
+	}
+}
