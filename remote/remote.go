@@ -233,7 +233,7 @@ func (r *RemoteClient) CopyFile(remoteFile string, localFile string) error {
 		return err
 	}
 
-	if err := os.MkdirAll(path.Base(localFile), os.ModePerm.Perm()); err != nil {
+	if err := os.MkdirAll(path.Dir(localFile), os.ModePerm.Perm()); err != nil {
 		return err
 	}
 
