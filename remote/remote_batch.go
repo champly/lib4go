@@ -46,126 +46,126 @@ func NewBatchRemoteClient(serverList []*ServerInfo) (*BatchRemoteClient, error) 
 	return rclient, nil
 }
 
-func (b *BatchRemoteClient) Exec(cmd string) ([]ResponseMsg, error) {
+func (b *BatchRemoteClient) Exec(cmd string) ([]*ResponseMsg, error) {
 	b.l.Lock()
 	defer b.l.Unlock()
 
-	rsl := make([]ResponseMsg, 0, b.count)
+	rsl := make([]*ResponseMsg, 0, b.count)
 
 	b.wg.Add(b.count)
 	for _, c := range b.client {
 		go func(c *RemoteClient) {
 			defer b.wg.Done()
 			r, e := c.Exec(cmd)
-			rsl = append(rsl, ResponseMsg{Msg: r, Error: e, Host: c.Host})
+			rsl = append(rsl, &ResponseMsg{Msg: r, Error: e, Host: c.Host})
 		}(c)
 	}
 	b.wg.Wait()
 	return rsl, nil
 }
 
-func (b *BatchRemoteClient) ScpFile(localFile string, remoteFile string) ([]ResponseMsg, error) {
+func (b *BatchRemoteClient) ScpFile(localFile string, remoteFile string) ([]*ResponseMsg, error) {
 	b.l.Lock()
 	defer b.l.Unlock()
 
-	rsl := make([]ResponseMsg, 0, b.count)
+	rsl := make([]*ResponseMsg, 0, b.count)
 
 	b.wg.Add(b.count)
 	for _, c := range b.client {
 		go func(c *RemoteClient) {
 			defer b.wg.Done()
 			e := c.ScpFile(localFile, remoteFile)
-			rsl = append(rsl, ResponseMsg{Error: e, Host: c.Host})
+			rsl = append(rsl, &ResponseMsg{Error: e, Host: c.Host})
 		}(c)
 	}
 	b.wg.Wait()
 	return rsl, nil
 }
 
-func (b *BatchRemoteClient) ScpDir(localDir, remoteDir string) ([]ResponseMsg, error) {
+func (b *BatchRemoteClient) ScpDir(localDir, remoteDir string) ([]*ResponseMsg, error) {
 	b.l.Lock()
 	defer b.l.Unlock()
 
-	rsl := make([]ResponseMsg, 0, b.count)
+	rsl := make([]*ResponseMsg, 0, b.count)
 
 	b.wg.Add(b.count)
 	for _, c := range b.client {
 		go func(c *RemoteClient) {
 			defer b.wg.Done()
 			e := c.ScpDir(localDir, remoteDir)
-			rsl = append(rsl, ResponseMsg{Error: e, Host: c.Host})
+			rsl = append(rsl, &ResponseMsg{Error: e, Host: c.Host})
 		}(c)
 	}
 	b.wg.Wait()
 	return rsl, nil
 }
 
-func (b *BatchRemoteClient) CopyFile(localFile string, remoteFile string) ([]ResponseMsg, error) {
+func (b *BatchRemoteClient) CopyFile(localFile string, remoteFile string) ([]*ResponseMsg, error) {
 	b.l.Lock()
 	defer b.l.Unlock()
 
-	rsl := make([]ResponseMsg, 0, b.count)
+	rsl := make([]*ResponseMsg, 0, b.count)
 
 	b.wg.Add(b.count)
 	for _, c := range b.client {
 		go func(c *RemoteClient) {
 			defer b.wg.Done()
 			e := c.CopyFile(localFile, remoteFile)
-			rsl = append(rsl, ResponseMsg{Error: e, Host: c.Host})
+			rsl = append(rsl, &ResponseMsg{Error: e, Host: c.Host})
 		}(c)
 	}
 	b.wg.Wait()
 	return rsl, nil
 }
 
-func (b *BatchRemoteClient) CopyDir(localDir, remoteDir string) ([]ResponseMsg, error) {
+func (b *BatchRemoteClient) CopyDir(localDir, remoteDir string) ([]*ResponseMsg, error) {
 	b.l.Lock()
 	defer b.l.Unlock()
 
-	rsl := make([]ResponseMsg, 0, b.count)
+	rsl := make([]*ResponseMsg, 0, b.count)
 
 	b.wg.Add(b.count)
 	for _, c := range b.client {
 		go func(c *RemoteClient) {
 			defer b.wg.Done()
 			e := c.CopyDir(localDir, remoteDir)
-			rsl = append(rsl, ResponseMsg{Error: e, Host: c.Host})
+			rsl = append(rsl, &ResponseMsg{Error: e, Host: c.Host})
 		}(c)
 	}
 	b.wg.Wait()
 	return rsl, nil
 }
 
-func (b *BatchRemoteClient) UseBashExecScript(remoteFile, script string) ([]ResponseMsg, error) {
+func (b *BatchRemoteClient) UseBashExecScript(remoteFile, script string) ([]*ResponseMsg, error) {
 	b.l.Lock()
 	defer b.l.Unlock()
 
-	rsl := make([]ResponseMsg, 0, b.count)
+	rsl := make([]*ResponseMsg, 0, b.count)
 
 	b.wg.Add(b.count)
 	for _, c := range b.client {
 		go func(c *RemoteClient) {
 			defer b.wg.Done()
 			r, e := c.UseBashExecScript(remoteFile, script)
-			rsl = append(rsl, ResponseMsg{Msg: r, Error: e, Host: c.Host})
+			rsl = append(rsl, &ResponseMsg{Msg: r, Error: e, Host: c.Host})
 		}(c)
 	}
 	b.wg.Wait()
 	return rsl, nil
 }
 
-func (b *BatchRemoteClient) Foreach(f func(r *RemoteClient) (string, error)) ([]ResponseMsg, error) {
+func (b *BatchRemoteClient) Foreach(f func(r *RemoteClient) (string, error)) ([]*ResponseMsg, error) {
 	b.l.Lock()
 	defer b.l.Unlock()
 
-	rsl := make([]ResponseMsg, 0, b.count)
+	rsl := make([]*ResponseMsg, 0, b.count)
 
 	b.wg.Add(b.count)
 	for _, c := range b.client {
 		go func(c *RemoteClient) {
 			defer b.wg.Done()
 			str, err := f(c)
-			rsl = append(rsl, ResponseMsg{Msg: str, Error: err, Host: c.Host})
+			rsl = append(rsl, &ResponseMsg{Msg: str, Error: err, Host: c.Host})
 		}(c)
 	}
 	b.wg.Wait()

@@ -156,7 +156,7 @@ func (r *RemoteClient) Exec(cmd string) (string, error) {
 			if strings.TrimSpace(bf.String()) != "" {
 				return bf.String() + bfe.String(), nil
 			}
-			return bf.String(), errors.New(bfe.String())
+			return "", errors.New(bfe.String())
 		}
 		bfe.Write(bufe[:n])
 	}
@@ -214,7 +214,7 @@ func (r *RemoteClient) ScpDir(localDir, remoteDir string) error {
 	return nil
 }
 
-func (r *RemoteClient) CopyFile(remoteFile string, localFile string) error {
+func (r *RemoteClient) CopyFile(localFile string, remoteFile string) error {
 	if err := r.getSftpClient(); err != nil {
 		return err
 	}
@@ -243,7 +243,7 @@ func (r *RemoteClient) CopyFile(remoteFile string, localFile string) error {
 	return nil
 }
 
-func (r *RemoteClient) CopyDir(remoteDir, localDir string) error {
+func (r *RemoteClient) CopyDir(localDir, remoteDir string) error {
 	if err := r.getSftpClient(); err != nil {
 		return err
 	}
@@ -265,13 +265,13 @@ func (r *RemoteClient) CopyDir(remoteDir, localDir string) error {
 				return err
 			}
 
-			if err = r.CopyDir(rf, lf); err != nil {
+			if err = r.CopyDir(lf, rf); err != nil {
 				fmt.Println(err)
 				return err
 			}
 			continue
 		}
-		if err := r.CopyFile(rf, lf); err != nil {
+		if err := r.CopyFile(lf, rf); err != nil {
 			return err
 		}
 	}
