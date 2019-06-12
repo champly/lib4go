@@ -1,5 +1,10 @@
 package types
 
+import (
+	"fmt"
+	"strconv"
+)
+
 func GetString(input interface{}, def ...string) string {
 	r, ok := input.(string)
 	if ok {
@@ -15,6 +20,10 @@ func GetInt(input interface{}, def ...int) int {
 	r, ok := input.(int)
 	if ok {
 		return r
+	}
+	b, err := strconv.Atoi(fmt.Sprintf("%v", r))
+	if err == nil {
+		return b
 	}
 	if len(def) > 0 {
 		return def[0]
