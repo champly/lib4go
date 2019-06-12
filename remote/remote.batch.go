@@ -53,13 +53,17 @@ func (b *BatchRemoteClient) Exec(cmd string) ([]*ResponseMsg, error) {
 	rsl := make([]*ResponseMsg, 0, b.count)
 
 	b.wg.Add(b.count)
+	fmt.Println(b.client)
 	for _, c := range b.client {
 		go func(c *RemoteClient) {
+			fmt.Println(c.Host, " doing exec")
 			defer b.wg.Done()
 			r, e := c.Exec(cmd)
+			fmt.Println(c.Host, r, e)
 			rsl = append(rsl, &ResponseMsg{Msg: r, Error: e, Host: c.Host})
 		}(c)
 	}
+	fmt.Println("wait")
 	b.wg.Wait()
 	return rsl, nil
 }
@@ -89,13 +93,16 @@ func (b *BatchRemoteClient) ScpDir(localDir, remoteDir string) ([]*ResponseMsg, 
 	rsl := make([]*ResponseMsg, 0, b.count)
 
 	b.wg.Add(b.count)
+	fmt.Println(b.client)
 	for _, c := range b.client {
 		go func(c *RemoteClient) {
+			fmt.Println(c.Host, " doing scpdir")
 			defer b.wg.Done()
 			e := c.ScpDir(localDir, remoteDir)
 			rsl = append(rsl, &ResponseMsg{Error: e, Host: c.Host})
 		}(c)
 	}
+	fmt.Println("wait")
 	b.wg.Wait()
 	return rsl, nil
 }
@@ -143,13 +150,16 @@ func (b *BatchRemoteClient) UseBashExecScript(remoteFile, script string) ([]*Res
 	rsl := make([]*ResponseMsg, 0, b.count)
 
 	b.wg.Add(b.count)
+	fmt.Println(b.client)
 	for _, c := range b.client {
 		go func(c *RemoteClient) {
+			fmt.Println(c.Host, " doing execscript")
 			defer b.wg.Done()
 			r, e := c.UseBashExecScript(remoteFile, script)
 			rsl = append(rsl, &ResponseMsg{Msg: r, Error: e, Host: c.Host})
 		}(c)
 	}
+	fmt.Println("wait")
 	b.wg.Wait()
 	return rsl, nil
 }
