@@ -21,7 +21,7 @@ func GetInt(input interface{}, def ...int) int {
 	if ok {
 		return r
 	}
-	b, err := strconv.Atoi(fmt.Sprintf("%v", r))
+	b, err := strconv.Atoi(fmt.Sprintf("%v", input))
 	if err == nil {
 		return b
 	}
