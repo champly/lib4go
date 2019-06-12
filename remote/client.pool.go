@@ -10,7 +10,7 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-const expireTime = 60
+const expireTime = 60 * 60
 
 type clientModel struct {
 	expireTime time.Time

@@ -24,30 +24,31 @@ func NewBatchRemoteClient(serverList []*ServerInfo) (*BatchRemoteClient, error) 
 	}
 	rclient := &BatchRemoteClient{count: len(serverList)}
 
-	var err error
-	var c *RemoteClient
-	client := []*RemoteClient{}
-	for _, serverInfo := range serverList {
+	errlist := make([]error, len(serverList))
+	rclient.client = []*RemoteClient{}
+	for i, serverInfo := range serverList {
 		rclient.wg.Add(1)
-		go func(serverInfo *ServerInfo) {
+		go func(serverInfo *ServerInfo, index int) {
 			defer rclient.wg.Done()
 
-			c, err = NewRemoteClient(serverInfo)
+			c, err := NewRemoteClient(serverInfo)
 			if err != nil {
+				errlist[index] = err
 				return
 			}
 			rclient.l.Lock()
-			client = append(client, c)
+			rclient.client = append(rclient.client, c)
 			rclient.l.Unlock()
 			return
-		}(serverInfo)
+		}(serverInfo, i)
 	}
 	rclient.wg.Wait()
-	if err != nil {
-		return nil, err
-	}
-	rclient.client = client
 
+	for _, e := range errlist {
+		if e != nil {
+			return nil, e
+		}
+	}
 	return rclient, nil
 }
 

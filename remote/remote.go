@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 )
 
 type ServerInfo struct {
@@ -24,10 +25,10 @@ type RemoteClient struct {
 }
 
 func NewRemoteClient(info *ServerInfo) (*RemoteClient, error) {
-	// _, err := getSSHClient(info)
-	// if err != nil {
-	// return nil, err
-	// }
+	_, err := getSSHClient(info)
+	if err != nil {
+		return nil, err
+	}
 	rclient := &RemoteClient{
 		ServerInfo: info,
 	}
@@ -85,6 +86,25 @@ func (r *RemoteClient) Exec(cmd string) (string, error) {
 			return "", errors.New(bfe.String())
 		}
 		bfe.Write(bufe[:n])
+	}
+}
+
+func (r *RemoteClient) ExecWithTimeout(cmd string, t time.Duration) (string, error) {
+	var result string
+	var err error
+
+	done := make(chan bool)
+	go func() {
+		result, err = r.Exec(cmd)
+		done <- true
+	}()
+
+	select {
+	case <-time.After(t):
+		r.Close()
+		return "", fmt.Errorf("exec timeout")
+	case <-done:
+		return result, err
 	}
 }
 
