@@ -79,8 +79,8 @@ func (b *BatchRemoteClient) ScpFile(localFile string, remoteFile string) ([]*Res
 	for _, c := range b.client {
 		go func(c *RemoteClient) {
 			defer b.wg.Done()
-			// e := c.ScpFile(localFile, remoteFile)
-			// rsl = append(rsl, &ResponseMsg{Error: e, Host: c.Host})
+			e := c.ScpFile(localFile, remoteFile)
+			rsl = append(rsl, &ResponseMsg{Error: e, Host: c.Host})
 		}(c)
 	}
 	b.wg.Wait()
@@ -115,8 +115,8 @@ func (b *BatchRemoteClient) CopyFile(localFile string, remoteFile string) ([]*Re
 	for _, c := range b.client {
 		go func(c *RemoteClient) {
 			defer b.wg.Done()
-			// e := c.CopyFile(localFile, remoteFile)
-			// rsl = append(rsl, &ResponseMsg{Error: e, Host: c.Host})
+			e := c.CopyFile(localFile, remoteFile)
+			rsl = append(rsl, &ResponseMsg{Error: e, Host: c.Host})
 		}(c)
 	}
 	b.wg.Wait()
@@ -133,8 +133,8 @@ func (b *BatchRemoteClient) CopyDir(localDir, remoteDir string) ([]*ResponseMsg,
 	for _, c := range b.client {
 		go func(c *RemoteClient) {
 			defer b.wg.Done()
-			// e := c.CopyDir(localDir, remoteDir)
-			// rsl = append(rsl, &ResponseMsg{Error: e, Host: c.Host})
+			e := c.CopyDir(localDir, remoteDir)
+			rsl = append(rsl, &ResponseMsg{Error: e, Host: c.Host})
 		}(c)
 	}
 	b.wg.Wait()
@@ -169,8 +169,8 @@ func (b *BatchRemoteClient) Foreach(f func(r *RemoteClient) (string, error)) ([]
 	for _, c := range b.client {
 		go func(c *RemoteClient) {
 			defer b.wg.Done()
-			// str, err := f(c)
-			// rsl = append(rsl, &ResponseMsg{Msg: str, Error: err, Host: c.Host})
+			str, err := f(c)
+			rsl = append(rsl, &ResponseMsg{Msg: str, Error: err, Host: c.Host})
 		}(c)
 	}
 	b.wg.Wait()
