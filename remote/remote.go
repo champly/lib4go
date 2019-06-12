@@ -24,6 +24,10 @@ type RemoteClient struct {
 }
 
 func NewRemoteClient(info *ServerInfo) (*RemoteClient, error) {
+	// _, err := getSSHClient(info)
+	// if err != nil {
+	// return nil, err
+	// }
 	rclient := &RemoteClient{
 		ServerInfo: info,
 	}
@@ -48,12 +52,10 @@ func (r *RemoteClient) Exec(cmd string) (string, error) {
 		return "", err
 	}
 
-	fmt.Println(r.Host, ">>>>>>>>>>>>>>>>run")
 	session.Run(cmd)
 	reader := bufio.NewReader(stdout)
 	bf := new(bytes.Buffer)
 	buf := make([]byte, 1024)
-	fmt.Println(r.Host, ">>>>>>>>>>>>>>>>read stdout")
 	for {
 		n, err := reader.Read(buf)
 		if err != nil && err != io.EOF {
@@ -63,13 +65,11 @@ func (r *RemoteClient) Exec(cmd string) (string, error) {
 			break
 		}
 		bf.Write(buf[:n])
-		fmt.Println(string(buf[:n]))
 	}
 
 	reader = bufio.NewReader(stderr)
 	bfe := new(bytes.Buffer)
 	bufe := make([]byte, 1024)
-	fmt.Println(r.Host, ">>>>>>>>>>>>>>>>read stderr")
 	for {
 		n, err := reader.Read(bufe)
 		if err != nil && err != io.EOF {
@@ -85,7 +85,6 @@ func (r *RemoteClient) Exec(cmd string) (string, error) {
 			return "", errors.New(bfe.String())
 		}
 		bfe.Write(bufe[:n])
-		fmt.Println(string(bufe[:n]))
 	}
 }
 
@@ -133,7 +132,6 @@ func (r *RemoteClient) ScpDir(localDir, remoteDir string) error {
 		if f.IsDir() {
 			sclient.MkdirAll(rf)
 			if err = r.ScpDir(lf, rf); err != nil {
-				fmt.Println(err)
 				return err
 			}
 			continue
@@ -197,7 +195,6 @@ func (r *RemoteClient) CopyDir(localDir, remoteDir string) error {
 			}
 
 			if err = r.CopyDir(lf, rf); err != nil {
-				fmt.Println(err)
 				return err
 			}
 			continue

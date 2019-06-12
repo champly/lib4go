@@ -6,17 +6,17 @@ import (
 
 func TestExec(t *testing.T) {
 	// create client
-	client, err := NewRemoteClient(&ServerInfo{
-		Host:     "10.13.3.6",
-		User:     "root",
-		Password: "dmallk8s",
-		Port:     22,
-	})
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	defer client.Close()
+	// client, err := NewRemoteClient(&ServerInfo{
+	// Host:     "10.13.3.6",
+	// User:     "root",
+	// Password: "dmallk8s",
+	// Port:     22,
+	// })
+	// if err != nil {
+	// t.Error(err)
+	// return
+	// }
+	// defer client.Close()
 	// t.Log("connect success")
 
 	// // exec cmd
@@ -57,7 +57,7 @@ func TestExec(t *testing.T) {
 	// }
 
 	// copy dir
-	if err = client.CopyDir("/etc/kubernetes", "/Users/champly/Downloads/kubernetes"); err != nil {
-		t.Error(err)
-	}
+	// if err = client.CopyDir("/etc/kubernetes", "/Users/champly/Downloads/kubernetes"); err != nil {
+	// t.Error(err)
+	// }
 }

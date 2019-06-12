@@ -49,8 +49,8 @@ func getSSHClient(info *ServerInfo) (*ssh.Client, error) {
 		c.expireTime = time.Now().Add(time.Second * expireTime)
 		return c.client, nil
 	}
-	fmt.Println("构建新连接")
-	fmt.Println(info)
+	// fmt.Println("构建新连接")
+	// fmt.Println(info)
 
 	config := &ssh.ClientConfig{
 		User: info.User,
@@ -97,7 +97,7 @@ func loopDeleteSSHClient() {
 			continue
 		}
 
-		fmt.Println("自动回收ssh")
+		// fmt.Println("自动回收ssh")
 		model.client.Close()
 		delete(sshClientPool, host)
 	}
@@ -113,7 +113,7 @@ func loopDeleteSftpClient() {
 			continue
 		}
 
-		fmt.Println("自动回收sftp")
+		// fmt.Println("自动回收sftp")
 		model.client.Close()
 		delete(sftpClientPool, host)
 	}

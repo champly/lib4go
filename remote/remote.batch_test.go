@@ -1,5 +1,10 @@
 package remote
 
+import (
+	"testing"
+	"time"
+)
+
 // func TestBatchExec(t *testing.T) {
 // // create client
 // client, err := NewBatchRemoteClient([]*ServerInfo{
@@ -68,3 +73,31 @@ package remote
 // }
 // t.Log(r)
 // }
+func TestBechant(t *testing.T) {
+	for i := 0; i < 10000; i++ {
+		client, _ := NewBatchRemoteClient([]*ServerInfo{
+			&ServerInfo{
+				Host:     "10.13.3.6",
+				User:     "root",
+				Password: "dmallk8s",
+				Port:     22,
+			},
+			&ServerInfo{
+				Host:     "10.13.3.4",
+				User:     "root",
+				Password: "dmallk8s",
+				Port:     22,
+			},
+			&ServerInfo{
+				Host:     "10.13.3.5",
+				User:     "root",
+				Password: "dmallk8s",
+				Port:     22,
+			},
+		})
+		client.Exec("")
+		time.Sleep(time.Microsecond * 100)
+		// client.CopyDir("", "")
+		// time.Sleep(time.Microsecond * 100)
+	}
+}
