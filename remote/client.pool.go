@@ -49,8 +49,8 @@ func getSSHClient(info *ServerInfo) (*ssh.Client, error) {
 		c.expireTime = time.Now().Add(time.Second * expireTime)
 		return c.client, nil
 	}
-	fmt.Println("构建新连接")
-	fmt.Println(info)
+	// fmt.Println("构建新连接")
+	// fmt.Println(info)
 
 	config := &ssh.ClientConfig{
 		User: info.User,
