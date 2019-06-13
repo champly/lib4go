@@ -49,8 +49,8 @@ func getSSHClient(info *ServerInfo) (*ssh.Client, error) {
 		c.expireTime = time.Now().Add(time.Second * expireTime)
 		return c.client, nil
 	}
-	// fmt.Println("构建新连接")
-	// fmt.Println(info)
+	fmt.Println("构建新连接")
+	fmt.Println(info)
 
 	config := &ssh.ClientConfig{
 		User: info.User,
@@ -65,14 +65,13 @@ func getSSHClient(info *ServerInfo) (*ssh.Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	l.Lock()
 	sshClientPool[info.Host] = &clientModel{expireTime: time.Now().Add(time.Second * expireTime), client: c}
+	l.Unlock()
 	return c, nil
 }
 
 func getSftpClient(info *ServerInfo) (*sftp.Client, error) {
-	l.Lock()
-	defer l.Unlock()
-
 	if sc, ok := sftpClientPool[info.Host]; ok {
 		sc.expireTime = time.Now().Add(time.Second * expireTime)
 		return sc.client, nil
@@ -86,7 +85,10 @@ func getSftpClient(info *ServerInfo) (*sftp.Client, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	l.Lock()
 	sftpClientPool[info.Host] = &sftpClientModel{expireTime: time.Now().Add(time.Second * expireTime), client: sc}
+	l.Unlock()
 	return sc, nil
 }
 
