@@ -57,6 +57,7 @@ func getSSHClient(info *ServerInfo) (*ssh.Client, error) {
 		Auth: []ssh.AuthMethod{
 			ssh.Password(info.Password),
 		},
+		Timeout: 10 * time.Second,
 		HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
 			return nil
 		},
