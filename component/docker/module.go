@@ -1,51 +1,73 @@
 package docker
 
-import "github.com/docker/docker/api/types"
+import (
+	"fmt"
+)
 
-// // containers
-// // Required: true
-// Containers int64 `json:"Containers"`
-
-// // created
-// // Required: true
-// Created int64 `json:"Created"`
-
-// // Id
-// // Required: true
-// ID string `json:"Id"`
-
-// // labels
-// // Required: true
-// Labels map[string]string `json:"Labels"`
-
-// // parent Id
-// // Required: true
-// ParentID string `json:"ParentId"`
-
-// // repo digests
-// // Required: true
-// RepoDigests []string `json:"RepoDigests"`
-
-// // repo tags
-// // Required: true
-// RepoTags []string `json:"RepoTags"`
-
-// // shared size
-// // Required: true
-// SharedSize int64 `json:"SharedSize"`
-
-// // size
-// // Required: true
-// Size int64 `json:"Size"`
-
-// // virtual size
-// // Required: true
-// VirtualSize int64 `json:"VirtualSize"`
+const DefaultRepository = "docker.io/library"
 
 type ImageInfo struct {
-	types.ImageSummary
+	Repository string `json:"repository"`
+	Tag        string `json:"tag"`
+	ImageID    string `json:"image_id"`
+	Created    string `json:"created"`
+	Size       string `json:"size"`
 }
 
 type ContainerInfo struct {
-	types.Container
+	ID         string      `json:"id"`
+	Names      []string    `json:"names"`
+	Image      string      `json:"image"`
+	ImageID    string      `json:"image_id"`
+	Command    string      `json:"command"`
+	SizeRw     string      `json:"size_rw,omitempty"`
+	SizeRootFs string      `json:"size_rootfs,omitempty"`
+	Created    string      `json:"created"`
+	State      string      `json:"state"`
+	Status     string      `json:"status"`
+	Ports      []PortInfo  `json:"ports"`
+	Mounts     []MountInfo `json:"mounts"`
+}
+
+type PortInfo struct {
+	IP          string `json:"ip,omitempty"`
+	PrivatePort uint16 `json:"private_port"`
+	PublicPort  uint16 `json:"public_port,omitempty"`
+	Type        string `json:"type"`
+}
+
+type MountInfo struct {
+	Type        string `json:"type,omitempty"`
+	Name        string `json:"name,omitempty"`
+	Source      string `json:"source"`
+	Destination string `json:"destination"`
+	Driver      string `json:"driver,omitempty"`
+	Mode        string `json:"mode"`
+	RW          bool   `json:"rw"`
+	Propagation string `json:"propagation"`
+}
+
+const unit = 1000
+
+func GetSize(byt int64) string {
+	if byt < unit {
+		return fmt.Sprintf("%dB", byt)
+	}
+
+	f := float64(byt) / unit
+	if f < unit {
+		return fmt.Sprintf("%.2fKB", f)
+	}
+
+	f /= unit
+	if f < unit {
+		return fmt.Sprintf("%.2fMB", f)
+	}
+
+	f /= unit
+	if f < unit {
+		return fmt.Sprintf("%.2fGB", f)
+	}
+
+	return fmt.Sprintf("%dB", byt)
 }

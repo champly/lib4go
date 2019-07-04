@@ -1,9 +1,11 @@
 package docker
 
-import "testing"
+import (
+	"testing"
+)
 
-func TestNewClient(t *testing.T) {
-	client, err := NewClient("10.13.3.2", 2376)
+func TestGetAllImage(t *testing.T) {
+	client, err := NewClient("10.13.3.2", 2376, "v1.39")
 	if err != nil {
 		t.Error(err)
 	}
@@ -16,3 +18,52 @@ func TestNewClient(t *testing.T) {
 		t.Logf("%+v\n", image)
 	}
 }
+
+func TestGetAllContainer(t *testing.T) {
+	client, err := NewClient("10.13.3.2", 2376, "v1.39")
+	if err != nil {
+		t.Error(err)
+	}
+	list, err := client.GetAllContainer()
+	if err != nil {
+		t.Error(err)
+	}
+
+	for _, container := range list {
+		t.Log(container)
+	}
+}
+
+func TestPullImage(t *testing.T) {
+	client, err := NewClient("10.13.3.2", 2376, "v1.39")
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(client.PullImage(DefaultRepository, "nginx", ""))
+}
+
+func TestCreateContainer(t *testing.T) {
+	client, err := NewClient("10.13.3.2", 2376, "v1.39")
+	if err != nil {
+		t.Error(err)
+	}
+	ports := map[int][]int{
+		8080:  []int{8080},
+		50000: []int{50000},
+	}
+	id, err := client.CreateContainer(DefaultRepository, "jenkins", "latest", []string{"/root/jenkins:/root/123"}, ports, "jjjj")
+	if err != nil {
+		t.Error(err)
+	}
+	t.Log(id)
+
+	t.Log(client.StartContainer(id))
+}
+
+// func TestTag(t *testing.T) {
+// client, err := NewClient("10.13.3.2", 2376, "v1.39")
+// if err != nil {
+// t.Error(err)
+// }
+// t.Log(client.Tag("nginx:latest", "nginx:v1.23"))
+// }
