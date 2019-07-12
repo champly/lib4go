@@ -100,3 +100,30 @@ func (j *JenkinsClient) IsComplate(jobName string, buildID int64) (result string
 	result = build.GetResult()
 	return
 }
+
+func (j *JenkinsClient) GetAllBuildList(jobName string) ([]BuildInfo, error) {
+
+	job, err := j.client.GetJob(jobName)
+	if err != nil {
+		if err.Error() == "404" {
+			return nil, JobNotExist
+		}
+		return nil, err
+	}
+
+	bList, err := job.GetAllBuildIds()
+	if err != nil {
+		return nil, err
+	}
+
+	list := []BuildInfo{}
+	for _, info := range bList {
+		list = append(list, BuildInfo{
+			QueueID:  info.QueueID,
+			BuildID:  info.Number,
+			Result:   info.Result,
+			Building: info.Building,
+		})
+	}
+	return list, nil
+}

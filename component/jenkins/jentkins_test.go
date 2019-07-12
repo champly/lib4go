@@ -66,7 +66,24 @@ func TestMotify(t *testing.T) {
 		t.Log(err.Error())
 		return
 	}
-	// t.Log(client.ModifyJob("demo1", config))
 	jobName := "demo11"
 	client.ModifyJob(jobName, config)
+}
+
+func TestGetAllBuildList(t *testing.T) {
+	client, err := NewJenkinsClient("http://10.13.3.6:8080", "admin", "123456")
+	if err != nil {
+		t.Log(err.Error())
+		return
+	}
+	jobName := "demo"
+
+	list, err := client.GetAllBuildList(jobName)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	for _, info := range list {
+		t.Logf("%+v\n", info)
+	}
 }
