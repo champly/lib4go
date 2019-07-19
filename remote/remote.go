@@ -110,14 +110,17 @@ func (r *RemoteClient) ExecWithTimeout(cmd string, t time.Duration) (string, err
 
 func (r *RemoteClient) ScpFile(file string, remoteFile string) error {
 	sclient, err := getSftpClient(r.ServerInfo)
+
 	if err != nil {
 		return err
 	}
 
-	b, err := ioutil.ReadFile(file)
+	f, err := os.Open(file)
 	if err != nil {
-		return err
+		return fmt.Errorf("read file:%s fail:%s", file, err)
 	}
+	defer f.Close()
+
 	if err = sclient.MkdirAll(path.Dir(remoteFile)); err != nil {
 		return fmt.Errorf("create remote dir(%s) fail:%s", path.Dir(remoteFile), err)
 	}
@@ -126,12 +129,15 @@ func (r *RemoteClient) ScpFile(file string, remoteFile string) error {
 	if err != nil {
 		return fmt.Errorf("create remote file fail:%s", err)
 	}
-	dsf.Write(b)
+	defer dsf.Close()
+
+	io.Copy(dsf, f)
 	return nil
 }
 
 func (r *RemoteClient) ScpDir(localDir, remoteDir string) error {
 	sclient, err := getSftpClient(r.ServerInfo)
+
 	if err != nil {
 		return err
 	}
