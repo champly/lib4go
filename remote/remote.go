@@ -16,6 +16,7 @@ import (
 type ServerInfo struct {
 	User     string
 	Password string
+	Key      string
 	Host     string
 	Port     int
 }

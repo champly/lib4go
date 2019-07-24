@@ -51,12 +51,26 @@ func getSSHClient(info *ServerInfo) (*ssh.Client, error) {
 	}
 	// fmt.Println("构建新连接")
 	// fmt.Println(info)
+	auth := make([]ssh.AuthMethod, 0)
+	if info.Key == "" {
+		auth = append(auth, ssh.Password(info.Password))
+	} else {
+		var signer ssh.Signer
+		var err error
+		if info.Password == "" {
+			signer, err = ssh.ParsePrivateKey([]byte(info.Key))
+		} else {
+			signer, err = ssh.ParsePrivateKeyWithPassphrase([]byte(info.Key), []byte(info.Password))
+		}
+		if err != nil {
+			return nil, err
+		}
+		auth = append(auth, ssh.PublicKeys(signer))
+	}
 
 	config := &ssh.ClientConfig{
-		User: info.User,
-		Auth: []ssh.AuthMethod{
-			ssh.Password(info.Password),
-		},
+		User:    info.User,
+		Auth:    auth,
 		Timeout: 10 * time.Second,
 		HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
 			return nil
