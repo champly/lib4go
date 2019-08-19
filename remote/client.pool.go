@@ -26,14 +26,16 @@ var (
 	sshClientPool  map[string]*clientModel
 	sftpClientPool map[string]*sftpClientModel
 	l              sync.Mutex
+	closeCh        chan struct{}
 )
 
 func init() {
 	sshClientPool = map[string]*clientModel{}
 	sftpClientPool = map[string]*sftpClientModel{}
+	closeCh = make(chan struct{})
 
-	go loopDeleteSSHClient()
-	go loopDeleteSftpClient()
+	go loopDeleteSSHClient(closeCh)
+	go loopDeleteSftpClient(closeCh)
 }
 
 func getSession(info *ServerInfo) (*ssh.Session, error) {
@@ -110,36 +112,49 @@ func getSftpClient(info *ServerInfo) (*sftp.Client, error) {
 	return sc, nil
 }
 
-func loopDeleteSSHClient() {
-	l.Lock()
-	for host, model := range sshClientPool {
-		if time.Now().Before(model.expireTime) {
-			continue
+func loopDeleteSSHClient(closeCh chan struct{}) {
+	ticker := time.NewTicker(time.Second * expireTime)
+	for {
+		select {
+		case <-ticker.C:
+			l.Lock()
+			for host, model := range sshClientPool {
+				if time.Now().Before(model.expireTime) {
+					continue
+				}
+
+				// fmt.Println("自动回收ssh")
+				model.client.Close()
+				delete(sshClientPool, host)
+			}
+			l.Unlock()
+
+		case <-closeCh:
+			return
 		}
-
-		// fmt.Println("自动回收ssh")
-		model.client.Close()
-		delete(sshClientPool, host)
 	}
-	l.Unlock()
-
-	time.Sleep(time.Second * expireTime)
 }
 
-func loopDeleteSftpClient() {
-	l.Lock()
-	for host, model := range sftpClientPool {
-		if time.Now().Before(model.expireTime) {
-			continue
+func loopDeleteSftpClient(closeCh chan struct{}) {
+	ticker := time.NewTicker(time.Second * expireTime)
+	for {
+		select {
+		case <-ticker.C:
+			l.Lock()
+			for host, model := range sftpClientPool {
+				if time.Now().Before(model.expireTime) {
+					continue
+				}
+
+				// fmt.Println("自动回收sftp")
+				model.client.Close()
+				delete(sftpClientPool, host)
+			}
+			l.Unlock()
+		case <-closeCh:
+			return
 		}
-
-		// fmt.Println("自动回收sftp")
-		model.client.Close()
-		delete(sftpClientPool, host)
 	}
-	l.Unlock()
-
-	time.Sleep(time.Second * expireTime)
 }
 
 func closeClient(host string) {
@@ -167,6 +182,8 @@ func closeSftpClient(host string) {
 }
 
 func Close() {
+	close(closeCh)
+
 	l.Lock()
 	defer l.Unlock()
 

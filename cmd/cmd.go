@@ -35,10 +35,10 @@ func ExecuteWithTimeout(cmd string, t time.Duration) (result string, err error) 
 		if ee := command.Process.Kill(); ee != nil && !strings.EqualFold("os: process already finished", ee.Error()) {
 			err = fmt.Errorf("%s, kill command error:%s", err, ee.Error())
 		}
-	case err = <-done:
+	case waitErr := <-done:
 		result = trimOutput(out)
-		if e.String() != "" {
-			err = fmt.Errorf(e.String())
+		if waitErr != nil && e.String() != "" {
+			err = fmt.Errorf("%s,%s", waitErr.Error(), e.String())
 		}
 	}
 	return
