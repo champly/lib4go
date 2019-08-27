@@ -2,12 +2,13 @@ package remote
 
 import (
 	"testing"
+	"time"
 )
 
 func TestExec(t *testing.T) {
 	// create client
 	client, err := NewRemoteClient(&ServerInfo{
-		Host: "10.13.3.6",
+		Host: "192.168.177.128",
 		User: "root",
 		Key: `-----BEGIN RSA PRIVATE KEY-----
 MIIEowIBAAKCAQEA3+ONOjcrnAeLayEvwZlDB8EKbylvLUas+iKu3R0PYps+WeY8
@@ -47,6 +48,17 @@ uEYY6WFwuNhLoOyaZ2b0cs1+W7JEKdpbsGoZrx384gKkp+RxOlaF
 
 	// exec cmd
 	r, err := client.Exec("ls /")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	t.Log(r)
+
+	t.Log("等待关闭系统")
+	time.Sleep(time.Second * 50)
+	t.Log("开始执行下一步")
+
+	r, err = client.Exec("ls /")
 	if err != nil {
 		t.Error(err)
 		return

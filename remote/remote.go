@@ -41,8 +41,10 @@ func (r *RemoteClient) Exec(cmd string) (string, error) {
 
 	session, err := getSession(r.ServerInfo)
 	if err != nil {
+		err = fmt.Errorf("get session err:%s", err.Error())
 		return "", err
 	}
+
 	defer session.Close()
 
 	stdout, err := session.StdoutPipe()

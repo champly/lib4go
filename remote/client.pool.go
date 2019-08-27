@@ -3,6 +3,7 @@ package remote
 import (
 	"fmt"
 	"net"
+	"strings"
 	"sync"
 	"time"
 
@@ -43,6 +44,22 @@ func getSession(info *ServerInfo) (*ssh.Session, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	session, err := client.NewSession()
+	if err == nil {
+		return session, nil
+	}
+	if !strings.EqualFold(err.Error(), "EOF") {
+		return nil, err
+	}
+
+	fmt.Printf("远程主机(%s)已经关闭，重新开始连接\n", info.Host)
+	closeClient(info.Host)
+
+	client, err = getSSHClient(info)
+	if err != nil {
+		return nil, err
+	}
 	return client.NewSession()
 }
 
@@ -51,8 +68,8 @@ func getSSHClient(info *ServerInfo) (*ssh.Client, error) {
 		c.expireTime = time.Now().Add(time.Second * expireTime)
 		return c.client, nil
 	}
-	// fmt.Println("构建新连接")
-	// fmt.Println(info)
+
+	fmt.Println("构建新连接:", info.Host)
 	auth := make([]ssh.AuthMethod, 0)
 	if info.Key == "" {
 		auth = append(auth, ssh.Password(info.Password))
