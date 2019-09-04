@@ -1,6 +1,7 @@
 package remote
 
 import (
+	"fmt"
 	"testing"
 	"time"
 )
@@ -44,7 +45,7 @@ uEYY6WFwuNhLoOyaZ2b0cs1+W7JEKdpbsGoZrx384gKkp+RxOlaF
 		return
 	}
 	defer client.Close()
-	t.Log("connect success")
+	fmt.Println("connect success")
 
 	// exec cmd
 	r, err := client.Exec("ls /")
@@ -52,18 +53,18 @@ uEYY6WFwuNhLoOyaZ2b0cs1+W7JEKdpbsGoZrx384gKkp+RxOlaF
 		t.Error(err)
 		return
 	}
-	t.Log(r)
+	fmt.Println(r)
 
-	t.Log("等待关闭系统")
+	fmt.Println("等待关闭系统")
 	time.Sleep(time.Second * 50)
-	t.Log("开始执行下一步")
+	fmt.Println("开始执行下一步")
 
-	r, err = client.Exec("ls /")
+	r, err = client.Exec("cat /etc/passwd")
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	t.Log(r)
+	fmt.Println(r)
 
 	// r, err = client.Exec("date")
 	// if err != nil {
