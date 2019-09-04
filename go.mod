@@ -4,7 +4,7 @@ go 1.12
 
 require (
 	github.com/Microsoft/go-winio v0.4.12 // indirect
-	github.com/bndr/gojenkins v0.2.1-0.20181125150310-de43c03cf849
+	github.com/champly/gojenkins v1.0.0
 	github.com/docker/distribution v2.7.1+incompatible // indirect
 	github.com/docker/docker v1.13.1
 	github.com/docker/go-connections v0.4.0

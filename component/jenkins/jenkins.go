@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/bndr/gojenkins"
+	"github.com/champly/gojenkins"
 )
 
 var (
