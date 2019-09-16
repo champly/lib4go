@@ -1,11 +1,6 @@
 package remote
 
-import (
-	"fmt"
-	"testing"
-	"time"
-)
-
+/*
 func TestExec(t *testing.T) {
 	// create client
 	client, err := NewRemoteClient(&ServerInfo{
@@ -100,3 +95,4 @@ uEYY6WFwuNhLoOyaZ2b0cs1+W7JEKdpbsGoZrx384gKkp+RxOlaF
 	// t.Error(err)
 	// }
 }
+*/
