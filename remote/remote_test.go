@@ -1,10 +1,15 @@
 package remote
 
-/*
+import (
+	"fmt"
+	"testing"
+	"time"
+)
+
 func TestExec(t *testing.T) {
 	// create client
 	client, err := NewRemoteClient(&ServerInfo{
-		Host: "192.168.177.128",
+		Host: "10.12.192.131",
 		User: "root",
 		Key: `-----BEGIN RSA PRIVATE KEY-----
 MIIEowIBAAKCAQEA3+ONOjcrnAeLayEvwZlDB8EKbylvLUas+iKu3R0PYps+WeY8
@@ -43,7 +48,7 @@ uEYY6WFwuNhLoOyaZ2b0cs1+W7JEKdpbsGoZrx384gKkp+RxOlaF
 	fmt.Println("connect success")
 
 	// exec cmd
-	r, err := client.Exec("ls /")
+	r, err := client.Exec("cd /root/demo && docker build -t demo .")
 	if err != nil {
 		t.Error(err)
 		return
@@ -95,4 +100,3 @@ uEYY6WFwuNhLoOyaZ2b0cs1+W7JEKdpbsGoZrx384gKkp+RxOlaF
 	// t.Error(err)
 	// }
 }
-*/

@@ -2,17 +2,13 @@ package remote
 
 import (
 	"bytes"
-	"sync"
 
 	"golang.org/x/crypto/ssh"
 )
 
 type TraceObj struct {
-	session   *ssh.Session
-	content   chan string
-	contBuf   *bytes.Buffer
-	l         sync.Mutex
-	needClose bool
+	session *ssh.Session
+	contBuf *bytes.Buffer
 }
 
 func NewRemoteTrace(info *ServerInfo) (*TraceObj, error) {
@@ -23,9 +19,15 @@ func NewRemoteTrace(info *ServerInfo) (*TraceObj, error) {
 
 	return &TraceObj{
 		session: session,
-		content: make(chan string, 2),
 		contBuf: new(bytes.Buffer),
 	}, nil
+}
+
+func NewRemoteTraceWithSession(session *ssh.Session) *TraceObj {
+	return &TraceObj{
+		session: session,
+		contBuf: new(bytes.Buffer),
+	}
 }
 
 func (r *TraceObj) Exec(cmd string) (string, error) {
@@ -43,4 +45,8 @@ func (r *TraceObj) ExecGetResult() (string, error) {
 func (r *TraceObj) Write(p []byte) (n int, err error) {
 	r.contBuf.Write(p)
 	return len(p), nil
+}
+
+func (r *TraceObj) Close() error {
+	return r.session.Close()
 }

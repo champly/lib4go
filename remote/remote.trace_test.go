@@ -1,11 +1,6 @@
 package remote
 
-import (
-	"fmt"
-	"testing"
-	"time"
-)
-
+/*
 func TestTraceObj(t *testing.T) {
 	client, err := NewRemoteTrace(&ServerInfo{
 		Host:     "192.168.50.92",
@@ -37,3 +32,4 @@ func TestTraceObj(t *testing.T) {
 
 	fmt.Println(r)
 }
+*/

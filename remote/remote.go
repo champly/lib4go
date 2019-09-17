@@ -1,9 +1,7 @@
 package remote
 
 import (
-	"bufio"
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -23,6 +21,7 @@ type ServerInfo struct {
 
 type RemoteClient struct {
 	*ServerInfo
+	contentBuf *bytes.Buffer
 }
 
 func NewRemoteClient(info *ServerInfo) (*RemoteClient, error) {
@@ -32,6 +31,7 @@ func NewRemoteClient(info *ServerInfo) (*RemoteClient, error) {
 	}
 	rclient := &RemoteClient{
 		ServerInfo: info,
+		contentBuf: new(bytes.Buffer),
 	}
 	return rclient, nil
 }
@@ -44,52 +44,18 @@ func (r *RemoteClient) Exec(cmd string) (string, error) {
 		err = fmt.Errorf("get session err:%s", err.Error())
 		return "", err
 	}
+	obj := NewRemoteTraceWithSession(session)
 
-	defer session.Close()
+	defer obj.Close()
 
-	stdout, err := session.StdoutPipe()
+	session.Stdout = obj
+	session.Stderr = obj
+
+	err = session.Run(cmd)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("%s%s", obj.contBuf.String(), err.Error())
 	}
-	stderr, err := session.StderrPipe()
-	if err != nil {
-		return "", err
-	}
-
-	session.Run(cmd)
-	reader := bufio.NewReader(stdout)
-	bf := new(bytes.Buffer)
-	buf := make([]byte, 1024)
-	for {
-		n, err := reader.Read(buf)
-		if err != nil && err != io.EOF {
-			return "", err
-		}
-		if n == 0 {
-			break
-		}
-		bf.Write(buf[:n])
-	}
-
-	reader = bufio.NewReader(stderr)
-	bfe := new(bytes.Buffer)
-	bufe := make([]byte, 1024)
-	for {
-		n, err := reader.Read(bufe)
-		if err != nil && err != io.EOF {
-			return "", err
-		}
-		if n == 0 {
-			if strings.TrimSpace(bfe.String()) == "" {
-				return bf.String(), nil
-			}
-			if strings.TrimSpace(bf.String()) != "" {
-				return bf.String() + bfe.String(), nil
-			}
-			return "", errors.New(bfe.String())
-		}
-		bfe.Write(bufe[:n])
-	}
+	return obj.contBuf.String(), nil
 }
 
 func (r *RemoteClient) ExecWithTimeout(cmd string, t time.Duration) (string, error) {
