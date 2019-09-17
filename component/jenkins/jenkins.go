@@ -127,3 +127,18 @@ func (j *JenkinsClient) GetAllBuildList(jobName string) ([]BuildInfo, error) {
 	}
 	return list, nil
 }
+
+func (j *JenkinsClient) GetConfig(jobName string) (config string, err error) {
+	job, err := j.client.GetJob(jobName)
+	if err != nil {
+		if err.Error() == "404" {
+			return "", JobNotExist
+		}
+		return "", err
+	}
+	config, err = job.GetConfig()
+	if err != nil {
+		return "", fmt.Errorf("get jobName:%s config fail:%+v", jobName, err)
+	}
+	return config, nil
+}
