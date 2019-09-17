@@ -1,7 +1,6 @@
 package remote
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -21,7 +20,6 @@ type ServerInfo struct {
 
 type RemoteClient struct {
 	*ServerInfo
-	contentBuf *bytes.Buffer
 }
 
 func NewRemoteClient(info *ServerInfo) (*RemoteClient, error) {
@@ -31,7 +29,6 @@ func NewRemoteClient(info *ServerInfo) (*RemoteClient, error) {
 	}
 	rclient := &RemoteClient{
 		ServerInfo: info,
-		contentBuf: new(bytes.Buffer),
 	}
 	return rclient, nil
 }
@@ -44,7 +41,7 @@ func (r *RemoteClient) Exec(cmd string) (string, error) {
 		err = fmt.Errorf("get session err:%s", err.Error())
 		return "", err
 	}
-	obj := NewRemoteTraceWithSession(session)
+	obj := NewCusReaderWithSession(r.ServerInfo, session)
 
 	defer obj.Close()
 
