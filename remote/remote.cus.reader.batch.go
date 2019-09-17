@@ -72,3 +72,21 @@ func (b *BatchCusReader) ExecGetResult() []*ResponseMsg {
 	}
 	return rsl
 }
+
+func (b *BatchCusReader) UseBashExecScript(remoteFile, script string) ([]*ResponseMsg, error) {
+	b.l.Lock()
+	defer b.l.Unlock()
+
+	rsl := make([]*ResponseMsg, 0, b.count)
+
+	b.wg.Add(b.count)
+	for _, c := range b.client {
+		go func(c *CusReader) {
+			defer b.wg.Done()
+			r, e := c.UseBashExecScript(remoteFile, script)
+			rsl = append(rsl, &ResponseMsg{Msg: r, Error: e, Host: c.Host})
+		}(c)
+	}
+	b.wg.Wait()
+	return rsl, nil
+}

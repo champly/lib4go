@@ -45,8 +45,20 @@ func TestBatchCusReader(t *testing.T) {
 	}()
 
 	// exec cmd
-	rl, err := client.Exec("for i in `seq 1 10`;do echo $i; sleep 1;done")
+	// rl, err := client.Exec("for i in `seq 1 10`;do echo $i; sleep 1;done")
 	// rl, err := client.Exec("docker pull nginx")
+	rl, err := client.UseBashExecScript("/root/1.sh", `#!/bin/bash
+echo "123"
+sleep 1
+echo "123"
+sleep 1
+echo "123"
+sleep 1
+echo "123"
+sleep 1
+echo "123"
+sleep 1
+	`)
 	if err != nil {
 		t.Error(err)
 		return

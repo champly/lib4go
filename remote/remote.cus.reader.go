@@ -3,6 +3,7 @@ package remote
 import (
 	"bytes"
 	"fmt"
+	"path"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -52,4 +53,22 @@ func (c *CusReader) Exec(cmd string) (string, error) {
 
 func (c *CusReader) ExecGetResult() string {
 	return c.contBuf.String()
+}
+
+func (c *CusReader) UseBashExecScript(remoteFile, script string) (string, error) {
+	sclient, err := getSftpClient(c.ServerInfo)
+	if err != nil {
+		return "", err
+	}
+
+	if err := sclient.MkdirAll(path.Dir(remoteFile)); err != nil {
+		return "", fmt.Errorf("create remote dir(%s) fail:%s", path.Dir(remoteFile), err)
+	}
+
+	dsf, err := sclient.Create(remoteFile)
+	if err != nil {
+		return "", fmt.Errorf("create remote file fail:%s", err)
+	}
+	dsf.Write([]byte(script))
+	return c.Exec("sh " + remoteFile)
 }
