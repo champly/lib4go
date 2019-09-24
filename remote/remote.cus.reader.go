@@ -32,7 +32,7 @@ func (c *CusReader) Close() error {
 }
 
 func NewCusReader(info *ServerInfo) (*CusReader, error) {
-	session, err := getSession(info)
+	session, err := GetSession(info)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +56,7 @@ func (c *CusReader) ExecGetResult() string {
 }
 
 func (c *CusReader) UseBashExecScript(remoteFile, script string) (string, error) {
-	sclient, err := getSftpClient(c.ServerInfo)
+	sclient, err := GetSftpClient(c.ServerInfo)
 	if err != nil {
 		return "", err
 	}

@@ -39,8 +39,8 @@ func init() {
 	go loopDeleteSftpClient(closeCh)
 }
 
-func getSession(info *ServerInfo) (*ssh.Session, error) {
-	client, err := getSSHClient(info)
+func GetSession(info *ServerInfo) (*ssh.Session, error) {
+	client, err := GetSSHClient(info)
 	if err != nil {
 		return nil, err
 	}
@@ -56,14 +56,14 @@ func getSession(info *ServerInfo) (*ssh.Session, error) {
 	fmt.Printf("远程主机(%s)已经关闭，重新开始连接\n", info.Host)
 	closeClient(info.Host)
 
-	client, err = getSSHClient(info)
+	client, err = GetSSHClient(info)
 	if err != nil {
 		return nil, err
 	}
 	return client.NewSession()
 }
 
-func getSSHClient(info *ServerInfo) (*ssh.Client, error) {
+func GetSSHClient(info *ServerInfo) (*ssh.Client, error) {
 	if c, ok := sshClientPool[info.Host]; ok {
 		c.expireTime = time.Now().Add(time.Second * expireTime)
 		return c.client, nil
@@ -108,13 +108,13 @@ func getSSHClient(info *ServerInfo) (*ssh.Client, error) {
 	return c, nil
 }
 
-func getSftpClient(info *ServerInfo) (*sftp.Client, error) {
+func GetSftpClient(info *ServerInfo) (*sftp.Client, error) {
 	if sc, ok := sftpClientPool[info.Host]; ok {
 		sc.expireTime = time.Now().Add(time.Second * expireTime)
 		return sc.client, nil
 	}
 
-	client, err := getSSHClient(info)
+	client, err := GetSSHClient(info)
 	if err != nil {
 		return nil, err
 	}

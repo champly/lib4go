@@ -23,7 +23,7 @@ type RemoteClient struct {
 }
 
 func NewRemoteClient(info *ServerInfo) (*RemoteClient, error) {
-	_, err := getSSHClient(info)
+	_, err := GetSSHClient(info)
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +36,7 @@ func NewRemoteClient(info *ServerInfo) (*RemoteClient, error) {
 func (r *RemoteClient) Exec(cmd string) (string, error) {
 	closeSftpClient(r.Host)
 
-	session, err := getSession(r.ServerInfo)
+	session, err := GetSession(r.ServerInfo)
 	if err != nil {
 		err = fmt.Errorf("get session err:%s", err.Error())
 		return "", err
@@ -75,7 +75,7 @@ func (r *RemoteClient) ExecWithTimeout(cmd string, t time.Duration) (string, err
 }
 
 func (r *RemoteClient) ScpFile(file string, remoteFile string) error {
-	sclient, err := getSftpClient(r.ServerInfo)
+	sclient, err := GetSftpClient(r.ServerInfo)
 
 	if err != nil {
 		return err
@@ -102,7 +102,7 @@ func (r *RemoteClient) ScpFile(file string, remoteFile string) error {
 }
 
 func (r *RemoteClient) ScpDir(localDir, remoteDir string) error {
-	sclient, err := getSftpClient(r.ServerInfo)
+	sclient, err := GetSftpClient(r.ServerInfo)
 
 	if err != nil {
 		return err
@@ -134,7 +134,7 @@ func (r *RemoteClient) ScpDir(localDir, remoteDir string) error {
 }
 
 func (r *RemoteClient) CopyFile(localFile string, remoteFile string) error {
-	sclient, err := getSftpClient(r.ServerInfo)
+	sclient, err := GetSftpClient(r.ServerInfo)
 	if err != nil {
 		return err
 	}
@@ -164,7 +164,7 @@ func (r *RemoteClient) CopyFile(localFile string, remoteFile string) error {
 }
 
 func (r *RemoteClient) CopyDir(localDir, remoteDir string) error {
-	sclient, err := getSftpClient(r.ServerInfo)
+	sclient, err := GetSftpClient(r.ServerInfo)
 	if err != nil {
 		return err
 	}
@@ -199,7 +199,7 @@ func (r *RemoteClient) CopyDir(localDir, remoteDir string) error {
 }
 
 func (r *RemoteClient) UseBashExecScript(remoteFile, script string) (string, error) {
-	sclient, err := getSftpClient(r.ServerInfo)
+	sclient, err := GetSftpClient(r.ServerInfo)
 	if err != nil {
 		return "", err
 	}
