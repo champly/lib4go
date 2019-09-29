@@ -20,11 +20,11 @@ type DClient struct {
 }
 
 func NewClient(host string, port int, version string) (*DClient, error) {
-	client, err := client.NewClient(fmt.Sprintf("tcp://%s:%d", host, port), version, nil, nil)
+	cli, err := client.NewClient(fmt.Sprintf("tcp://%s:%d", host, port), version, nil, nil)
 	if err != nil {
 		return nil, err
 	}
-	return &DClient{cli: client}, nil
+	return &DClient{cli: cli}, nil
 }
 
 func (d *DClient) GetAllImageList() ([]ImageInfo, error) {
