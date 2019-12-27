@@ -31,4 +31,5 @@ func TestNew(t *testing.T) {
 	}
 
 	time.Sleep(20 * time.Second)
+	d.Close()
 }
