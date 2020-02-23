@@ -2,6 +2,7 @@ package remote
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"strings"
 	"sync"
@@ -49,13 +50,14 @@ func GetSession(info *ServerInfo) (*ssh.Session, error) {
 	if err == nil {
 		return session, nil
 	}
+
+	closeClient(info.Host)
+
 	if !strings.EqualFold(err.Error(), "EOF") {
 		return nil, err
 	}
 
-	fmt.Printf("远程主机(%s)已经关闭，重新开始连接\n", info.Host)
-	closeClient(info.Host)
-
+	log.Printf("远程主机(%s)已经关闭，重新开始连接\n", info.Host)
 	client, err = GetSSHClient(info)
 	if err != nil {
 		return nil, err
@@ -69,7 +71,7 @@ func GetSSHClient(info *ServerInfo) (*ssh.Client, error) {
 		return c.client, nil
 	}
 
-	fmt.Println("构建新连接:", info.Host)
+	log.Printf("构建新连接:%s\n", info.Host)
 	auth := make([]ssh.AuthMethod, 0)
 	if info.Key == "" {
 		auth = append(auth, ssh.Password(info.Password))
@@ -140,7 +142,7 @@ func loopDeleteSSHClient(closeCh chan struct{}) {
 					continue
 				}
 
-				// fmt.Println("自动回收ssh")
+				// log.Printf("自动回收ssh")
 				model.client.Close()
 				delete(sshClientPool, host)
 			}
@@ -163,7 +165,7 @@ func loopDeleteSftpClient(closeCh chan struct{}) {
 					continue
 				}
 
-				// fmt.Println("自动回收sftp")
+				// log.Printf("自动回收sftp")
 				model.client.Close()
 				delete(sftpClientPool, host)
 			}
