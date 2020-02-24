@@ -100,7 +100,7 @@ func GetSSHClient(info *ServerInfo) (*ssh.Client, error) {
 			return nil
 		},
 	}
-	c, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", info.Host, 22), config)
+	c, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", info.Host, info.Port), config)
 	if err != nil {
 		return nil, err
 	}
