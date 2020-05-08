@@ -1,7 +1,6 @@
 package encoding
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/ghodss/yaml"
@@ -24,6 +23,5 @@ func YAML2Struct(str string) (*types.Struct, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(string(b))
 	return JSON2Struct(string(b))
 }
