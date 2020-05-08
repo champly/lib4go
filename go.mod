@@ -10,6 +10,9 @@ require (
 	github.com/docker/go-connections v0.4.0
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/fortytw2/leaktest v1.3.0 // indirect
+	github.com/ghodss/yaml v1.0.0
+	github.com/gogo/protobuf v1.3.1
+	github.com/golang/protobuf v1.4.1
 	github.com/google/go-cmp v0.4.0 // indirect
 	github.com/mailru/easyjson v0.7.1 // indirect
 	github.com/olivere/elastic v6.2.31+incompatible
