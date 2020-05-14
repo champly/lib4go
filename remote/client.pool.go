@@ -57,7 +57,7 @@ func GetSession(info *ServerInfo) (*ssh.Session, error) {
 		return nil, err
 	}
 
-	log.Printf("远程主机(%s)已经关闭，重新开始连接\n", info.Host)
+	log.Printf("remote host (%s) already closed，reconnect\n", info.Host)
 	client, err = GetSSHClient(info)
 	if err != nil {
 		return nil, err
@@ -68,10 +68,11 @@ func GetSession(info *ServerInfo) (*ssh.Session, error) {
 func GetSSHClient(info *ServerInfo) (*ssh.Client, error) {
 	if c, ok := sshClientPool[info.Host]; ok {
 		c.expireTime = time.Now().Add(time.Second * expireTime)
+		// if c.client.HandleChannelOpen(channelType string)
 		return c.client, nil
 	}
 
-	log.Printf("构建新连接:%s\n", info.Host)
+	log.Printf("connect new host:%s\n", info.Host)
 	auth := make([]ssh.AuthMethod, 0)
 	if info.Key == "" {
 		auth = append(auth, ssh.Password(info.Password))
@@ -100,14 +101,32 @@ func GetSSHClient(info *ServerInfo) (*ssh.Client, error) {
 			return nil
 		},
 	}
-	c, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", info.Host, info.Port), config)
+
+	addr := fmt.Sprintf("%s:%d", info.Host, info.Port)
+	conn, err := net.DialTimeout("tcp", addr, config.Timeout)
 	if err != nil {
 		return nil, err
 	}
+	c, chans, reqs, err := ssh.NewClientConn(conn, addr, config)
+	if err != nil {
+		return nil, err
+	}
+	sc, err := ssh.NewClient(c, chans, reqs), nil
+	if err != nil {
+		return nil, err
+	}
+
+	go func() {
+		<-chans
+		log.Printf("remote %s closed", info.Host)
+		closeSftpClient(info.Host)
+		closeClient(info.Host)
+	}()
+
 	l.Lock()
-	sshClientPool[info.Host] = &clientModel{expireTime: time.Now().Add(time.Second * expireTime), client: c}
+	sshClientPool[info.Host] = &clientModel{expireTime: time.Now().Add(time.Second * expireTime), client: sc}
 	l.Unlock()
-	return c, nil
+	return sc, nil
 }
 
 func GetSftpClient(info *ServerInfo) (*sftp.Client, error) {

@@ -13,12 +13,11 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/protobuf v1.4.1
-	github.com/google/go-cmp v0.4.0 // indirect
 	github.com/mailru/easyjson v0.7.1 // indirect
 	github.com/olivere/elastic v6.2.31+incompatible
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/pkg/sftp v1.11.0
 	github.com/tealeg/xlsx v1.0.5
-	golang.org/x/crypto v0.0.0-20200429183012-4b2356b1ed79
+	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
 	golang.org/x/text v0.3.2
 )

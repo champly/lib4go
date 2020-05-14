@@ -128,7 +128,9 @@ func (r *RemoteClient) ScpDir(localDir, remoteDir string) error {
 			}
 			continue
 		}
-		r.ScpFile(lf, rf)
+		if err = r.ScpFile(lf, rf); err != nil {
+			return err
+		}
 	}
 	return nil
 }
