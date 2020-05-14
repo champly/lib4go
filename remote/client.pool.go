@@ -102,7 +102,12 @@ func GetSSHClient(info *ServerInfo) (*ssh.Client, error) {
 		},
 	}
 
-	addr := fmt.Sprintf("%s:%d", info.Host, info.Port)
+	port := info.Port
+	if port == 0 {
+		port = 22
+	}
+
+	addr := fmt.Sprintf("%s:%d", info.Host, port)
 	conn, err := net.DialTimeout("tcp", addr, config.Timeout)
 	if err != nil {
 		return nil, err
