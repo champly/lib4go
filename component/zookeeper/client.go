@@ -20,8 +20,6 @@ type ZkClient struct {
 	conn      *zk.Conn
 	eventChan <-chan zk.Event
 	isConnect bool
-
-	// watchValue map[string][]func()
 }
 
 // New new zk client
