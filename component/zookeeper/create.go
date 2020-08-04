@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/go-zookeeper/zk"
 	"github.com/pkg/errors"
-	"github.com/samuel/go-zookeeper/zk"
 )
 
 // CreatePersistentNode create persistent node with data

@@ -3,8 +3,8 @@ package zookeeper
 import (
 	"time"
 
+	"github.com/go-zookeeper/zk"
 	"github.com/pkg/errors"
-	"github.com/samuel/go-zookeeper/zk"
 	"k8s.io/klog"
 )
 

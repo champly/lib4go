@@ -1,8 +1,8 @@
 package zookeeper
 
 import (
+	"github.com/go-zookeeper/zk"
 	"github.com/pkg/errors"
-	"github.com/samuel/go-zookeeper/zk"
 )
 
 // GetValue get path data
