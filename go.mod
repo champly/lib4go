@@ -16,6 +16,8 @@ require (
 	github.com/golang/protobuf v1.4.2
 	github.com/mailru/easyjson v0.7.2 // indirect
 	github.com/olivere/elastic v6.2.34+incompatible
+	github.com/onsi/ginkgo v1.14.0
+	github.com/onsi/gomega v1.10.1
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/sftp v1.11.0
