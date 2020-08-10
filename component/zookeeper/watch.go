@@ -26,10 +26,13 @@ type basework struct {
 }
 
 func (bw *basework) run() {
+	t := time.NewTimer(time.Microsecond * 100)
+	defer t.Stop()
+
 	for {
 		if !bw.zcli.IsConnect() {
 			bw.connected = false
-			time.Sleep(time.Millisecond * 20)
+			<-t.C
 			continue
 		}
 
@@ -49,7 +52,7 @@ func (bw *basework) run() {
 			if !bw.cb.Event(e) {
 				return
 			}
-		default:
+		case <-t.C:
 		}
 	}
 }
