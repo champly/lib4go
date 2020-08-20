@@ -66,7 +66,10 @@ func GetSession(info *ServerInfo) (*ssh.Session, error) {
 }
 
 func GetSSHClient(info *ServerInfo) (*ssh.Client, error) {
-	if c, ok := sshClientPool[info.Host]; ok {
+	l.Lock()
+	c, ok := sshClientPool[info.Host]
+	l.Unlock()
+	if ok {
 		c.expireTime = time.Now().Add(time.Second * expireTime)
 		// if c.client.HandleChannelOpen(channelType string)
 		return c.client, nil
