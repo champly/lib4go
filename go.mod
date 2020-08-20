@@ -25,4 +25,5 @@ require (
 	golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de
 	golang.org/x/text v0.3.3
 	k8s.io/klog v1.0.0
+	mosn.io/pkg v0.0.0-20200729115159-2bd74f20be0f
 )

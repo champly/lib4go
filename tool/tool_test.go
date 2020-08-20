@@ -1,6 +1,7 @@
 package tool
 
 import (
+	"fmt"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
@@ -34,4 +35,10 @@ func (m *matcher) NegatedFailureMessage(actual interface{}) (message string) {
 func TestGetGUID(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "GetGUID")
+}
+
+func TestGoWithRecover(t *testing.T) {
+	GoWithRecover(func() {
+		fmt.Println("handler with not handler")
+	}, nil)
 }
