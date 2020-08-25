@@ -1,9 +1,16 @@
 package buffer
 
-import "testing"
+import (
+	"context"
+	"testing"
+)
+
+var (
+	ins = demo{}
+)
 
 func init() {
-	RegistryBuffer(&demo{})
+	RegistryBuffer(&ins)
 }
 
 type demo struct {
@@ -19,5 +26,12 @@ func (d *demo) Reset(buf interface{}) {
 }
 
 func TestRegistry(t *testing.T) {
+	ctx := context.TODO()
+	ctx = NewBufferPoolContext(ctx)
 
+	bv := PoolContext(ctx)
+	defer bv.Give()
+
+	value := bv.Find(&ins, nil)
+	t.Log(value)
 }

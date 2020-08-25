@@ -1,12 +1,16 @@
 package buffer
 
 import (
+	"context"
 	"sync"
 	"sync/atomic"
 	"unsafe"
 )
 
-const maxBufferPool = 16
+const (
+	maxBufferPool = 16
+	ctxStoreKey   = "BUFFER_CACHE_POOL"
+)
 
 var (
 	index int32
@@ -79,6 +83,10 @@ type bufferValue struct {
 	transmit [maxBufferPool]interface{}
 }
 
+func NewBufferPoolContext(ctx context.Context) context.Context {
+	return context.WithValue(ctx, ctxStoreKey, newBufferValue())
+}
+
 func newBufferValue() (value *bufferValue) {
 	v := vPool.Get()
 	if v == nil {
@@ -111,6 +119,7 @@ func (bv *bufferValue) Give() {
 	if index <= 0 {
 		return
 	}
+	// first index is 1
 	for i := 1; i < int(index); i++ {
 		value := bv.value[i]
 		if value != nil {
@@ -123,5 +132,16 @@ func (bv *bufferValue) Give() {
 	}
 	bv.value = nullBufferValue
 	bv.transmit = nullBufferValue
+
+	// Give bufferValue to Pool
 	vPool.Put(bv)
+}
+
+func PoolContext(ctx context.Context) *bufferValue {
+	if ctx != nil {
+		if val := ctx.Value(ctxStoreKey); val != nil {
+			return val.(*bufferValue)
+		}
+	}
+	return newBufferValue()
 }
