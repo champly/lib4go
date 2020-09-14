@@ -115,14 +115,11 @@ func GetSSHClient(info *ServerInfo) (*ssh.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	c, chans, reqs, err := ssh.NewClientConn(conn, addr, config)
+	scn, chans, reqs, err := ssh.NewClientConn(conn, addr, config)
 	if err != nil {
 		return nil, err
 	}
-	sc, err := ssh.NewClient(c, chans, reqs), nil
-	if err != nil {
-		return nil, err
-	}
+	sc := ssh.NewClient(scn, chans, reqs)
 
 	go func() {
 		<-chans
