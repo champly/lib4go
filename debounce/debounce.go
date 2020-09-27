@@ -2,6 +2,8 @@ package debounce
 
 import (
 	"time"
+
+	"k8s.io/klog"
 )
 
 type Request interface {
@@ -9,18 +11,18 @@ type Request interface {
 }
 
 type Debounce struct {
-	ch          chan Request
-	waitTime    time.Duration
-	maxWaitTime time.Duration
-	pushFn      func(req Request)
+	ch            chan Request
+	debounceAfter time.Duration
+	debounceMax   time.Duration
+	pushFn        func(req Request)
 }
 
-func New(waitTime, maxWaitTime time.Duration, pushFn func(req Request)) *Debounce {
+func New(debounceAfter, debounceMax time.Duration, pushFn func(req Request)) *Debounce {
 	d := &Debounce{
-		ch:          make(chan Request, 0),
-		waitTime:    waitTime,
-		maxWaitTime: maxWaitTime,
-		pushFn:      pushFn,
+		ch:            make(chan Request, 0),
+		debounceAfter: debounceAfter,
+		debounceMax:   debounceMax,
+		pushFn:        pushFn,
 	}
 	go d.start()
 	return d
@@ -28,9 +30,10 @@ func New(waitTime, maxWaitTime time.Duration, pushFn func(req Request)) *Debounc
 
 func (d *Debounce) start() {
 	var timeChan <-chan time.Time
-	var startTime time.Time
-	var lastUpdateTime time.Time
+	var startDebounce time.Time
+	var lastConfigUpdateTime time.Time
 
+	pushCounter := 0
 	debouncedEvents := 0
 
 	var req Request
@@ -44,17 +47,22 @@ func (d *Debounce) start() {
 	}
 
 	pushWorker := func() {
-		eventDelay := time.Since(startTime)
-		quitTime := time.Since(lastUpdateTime)
-		if quitTime >= d.waitTime || eventDelay >= d.maxWaitTime {
+		eventDelay := time.Since(startDebounce)
+		quietTime := time.Since(lastConfigUpdateTime)
+		if eventDelay >= d.debounceMax || quietTime >= d.debounceAfter {
 			if req != nil {
+				pushCounter++
+				klog.Infof("Push debounce stable[%d] %d: %v since last change, %v since last push",
+					pushCounter, debouncedEvents,
+					quietTime, eventDelay)
+
 				free = false
 				go push(req)
 				req = nil
 				debouncedEvents = 0
 			}
 		} else {
-			timeChan = time.After(d.waitTime - quitTime)
+			timeChan = time.After(d.debounceAfter - quietTime)
 		}
 	}
 
@@ -63,16 +71,15 @@ func (d *Debounce) start() {
 		case <-freeCh:
 			free = true
 			pushWorker()
-
 		case r, ok := <-d.ch:
 			if !ok {
 				return
 			}
 
-			lastUpdateTime = time.Now()
+			lastConfigUpdateTime = time.Now()
 			if debouncedEvents == 0 {
-				timeChan = time.After(d.waitTime)
-				startTime = lastUpdateTime
+				timeChan = time.After(d.debounceAfter)
+				startDebounce = lastConfigUpdateTime
 			}
 			debouncedEvents++
 
@@ -81,7 +88,6 @@ func (d *Debounce) start() {
 				continue
 			}
 			req = req.Merge(r)
-
 		case <-timeChan:
 			if free {
 				pushWorker()
