@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/go-zookeeper/zk"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 // HandlerValue handler watch value event

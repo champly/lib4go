@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/champly/lib4go/signal"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
 func TestNewClient(t *testing.T) {

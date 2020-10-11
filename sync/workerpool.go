@@ -5,7 +5,7 @@ import (
 	"runtime/debug"
 
 	"github.com/champly/lib4go/tool"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 	"mosn.io/pkg/utils"
 )
 

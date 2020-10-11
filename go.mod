@@ -1,6 +1,6 @@
 module github.com/champly/lib4go
 
-go 1.14
+go 1.15
 
 require (
 	github.com/Microsoft/go-winio v0.4.14 // indirect
@@ -24,6 +24,6 @@ require (
 	github.com/tealeg/xlsx v1.0.5
 	golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de
 	golang.org/x/text v0.3.3
-	k8s.io/klog v1.0.0
+	k8s.io/klog/v2 v2.3.0
 	mosn.io/pkg v0.0.0-20200729115159-2bd74f20be0f
 )
