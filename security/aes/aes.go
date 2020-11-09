@@ -69,14 +69,14 @@ func decrpt(key string, crypted []byte) ([]byte, error) {
 	return origData, nil
 }
 
-// PKCS5Padding pkcs5填充
+// PKCS5Padding pkcs5 填充
 func PKCS5Padding(ciphertext []byte, blockSize int) []byte {
 	padding := blockSize - len(ciphertext)%blockSize
 	padtext := bytes.Repeat([]byte{byte(padding)}, padding)
 	return append(ciphertext, padtext...)
 }
 
-// PKCS5UnPadding pkcs5去填充
+// PKCS5UnPadding pkcs5 去填充
 func PKCS5UnPadding(origData []byte) []byte {
 	length := len(origData)
 	unpadding := int(origData[length-1])

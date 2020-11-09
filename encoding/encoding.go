@@ -11,7 +11,7 @@ import (
 	"golang.org/x/text/transform"
 )
 
-func GbkToUtf8(s string) (string, error) {
+func GBK2UTF8(s string) (string, error) {
 	reader := transform.NewReader(bytes.NewReader([]byte(s)), simplifiedchinese.GBK.NewDecoder())
 	d, err := ioutil.ReadAll(reader)
 	if err != nil {
@@ -20,7 +20,7 @@ func GbkToUtf8(s string) (string, error) {
 	return string(d), nil
 }
 
-func Utf8ToGbk(s string) (string, error) {
+func UTF82GBK(s string) (string, error) {
 	reader := transform.NewReader(bytes.NewReader([]byte(s)), simplifiedchinese.GBK.NewEncoder())
 	d, err := ioutil.ReadAll(reader)
 	if err != nil {

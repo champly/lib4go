@@ -10,7 +10,7 @@ var (
 )
 
 func TestUtf8ToGbk(t *testing.T) {
-	r, err := Utf8ToGbk(utf8Str)
+	r, err := UTF82GBK(utf8Str)
 	if err != nil {
 		t.Error("test [encoding.Utf8ToGbk] fail:", err)
 	}
@@ -18,7 +18,7 @@ func TestUtf8ToGbk(t *testing.T) {
 }
 
 func TestGbkToUtf8(t *testing.T) {
-	r, err := GbkToUtf8(gbkStr)
+	r, err := GBK2UTF8(gbkStr)
 	if err != nil {
 		t.Error("test [encoding.GbkToUtf8] fail:", err)
 	}
