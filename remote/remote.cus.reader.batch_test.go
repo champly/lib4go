@@ -8,19 +8,19 @@ import (
 
 func TestBatchCusReader(t *testing.T) {
 	client, err := NewBatchCusReader([]*ServerInfo{
-		&ServerInfo{
+		{
 			Host: "10.12.192.131",
 			User: "root",
 			Key:  rsaPriv,
 			Port: 22,
 		},
-		&ServerInfo{
+		{
 			Host: "10.12.192.132",
 			User: "root",
 			Key:  rsaPriv,
 			Port: 22,
 		},
-		&ServerInfo{
+		{
 			Host: "10.12.192.133",
 			User: "root",
 			Key:  rsaPriv,
