@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -59,6 +60,7 @@ func TestNewClient(t *testing.T) {
 	//         // t.Logf("delete obj:%+v", obj)
 	//     },
 	// })
+	client.SharedInformerFactory.InformerFor(nil, NewInformerFunc)
 
 	stopCh := make(chan struct{})
 	client.SharedInformerFactory.Start(stopCh)
@@ -74,4 +76,17 @@ func TestNewClient(t *testing.T) {
 	// t.Log("sync appsets success")
 
 	time.Sleep(time.Second * 10)
+}
+
+func NewInformerFunc(client kubernetes.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return cache.NewSharedIndexInformer(
+		&cache.ListWatch{
+			// ListFunc: func(options metav1.ListOptions)(runtime.Object, error){
+			//     return client.AppsV1().Deployments().Watch
+			// },
+		},
+		nil,
+		resyncPeriod,
+		nil,
+	)
 }
