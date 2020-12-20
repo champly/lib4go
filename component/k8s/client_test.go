@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -37,27 +36,29 @@ func TestNewClient(t *testing.T) {
 		},
 	})
 
-	genericInformer, err := client.SharedInformerFactory.ForResource(schema.GroupVersionResource{
-		Group:    "group",
-		Version:  "version",
-		Resource: "resource",
-	})
-	if err != nil {
-		t.Errorf("build informer for resource failed:%+v", err)
-		return
-	}
+	// client.SharedInformerFactory.InformerFor(nil, nil)
 
-	genericInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: func(obj interface{}) {
-			// t.Logf("add obj:%+v", obj)
-		},
-		UpdateFunc: func(old, new interface{}) {
-			// t.Logf("update obj: %+v, %+v", old, new)
-		},
-		DeleteFunc: func(obj interface{}) {
-			// t.Logf("delete obj:%+v", obj)
-		},
-	})
+	// genericInformer, err := client.SharedInformerFactory.ForResource(schema.GroupVersionResource{
+	//     Group:    "group",
+	//     Version:  "version",
+	//     Resource: "resource",
+	// })
+	// if err != nil {
+	//     t.Errorf("build informer for resource failed:%+v", err)
+	//     return
+	// }
+
+	// genericInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+	//     AddFunc: func(obj interface{}) {
+	//         // t.Logf("add obj:%+v", obj)
+	//     },
+	//     UpdateFunc: func(old, new interface{}) {
+	//         // t.Logf("update obj: %+v, %+v", old, new)
+	//     },
+	//     DeleteFunc: func(obj interface{}) {
+	//         // t.Logf("delete obj:%+v", obj)
+	//     },
+	// })
 
 	stopCh := make(chan struct{})
 	client.SharedInformerFactory.Start(stopCh)
@@ -67,10 +68,10 @@ func TestNewClient(t *testing.T) {
 	}
 	t.Log("sync pod success")
 
-	for !genericInformer.Informer().HasSynced() {
-		time.Sleep(time.Millisecond * 100)
-	}
-	t.Log("sync appsets success")
+	// for !genericInformer.Informer().HasSynced() {
+	//     time.Sleep(time.Millisecond * 100)
+	// }
+	// t.Log("sync appsets success")
 
 	time.Sleep(time.Second * 10)
 }
