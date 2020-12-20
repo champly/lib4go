@@ -1,11 +1,10 @@
 package k8s
 
 import (
-	"context"
 	"testing"
 	"time"
 
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -16,14 +15,14 @@ func TestNewClient(t *testing.T) {
 		return
 	}
 
-	pods, err := client.KubeClientSet.CoreV1().Pods("").List(context.TODO(), v1.ListOptions{})
-	if err != nil {
-		t.Errorf("get all pods err:%+v", err)
-		return
-	}
-	for _, pod := range pods.Items {
-		t.Logf("get pod %s/%s ", pod.Namespace, pod.Name)
-	}
+	// pods, err := client.KubeClientSet.CoreV1().Pods("").List(context.TODO(), v1.ListOptions{})
+	// if err != nil {
+	//     t.Errorf("get all pods err:%+v", err)
+	//     return
+	// }
+	// for _, pod := range pods.Items {
+	//     t.Logf("get pod %s/%s ", pod.Namespace, pod.Name)
+	// }
 
 	informer := client.SharedInformerFactory.Core().V1().Pods().Informer()
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -37,7 +36,28 @@ func TestNewClient(t *testing.T) {
 			// t.Logf("delete obj:%+v", obj)
 		},
 	})
-	// client.SharedInformerFactory.ForResource()
+
+	genericInformer, err := client.SharedInformerFactory.ForResource(schema.GroupVersionResource{
+		Group:    "group",
+		Version:  "version",
+		Resource: "resource",
+	})
+	if err != nil {
+		t.Errorf("build informer for resource failed:%+v", err)
+		return
+	}
+
+	genericInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
+			// t.Logf("add obj:%+v", obj)
+		},
+		UpdateFunc: func(old, new interface{}) {
+			// t.Logf("update obj: %+v, %+v", old, new)
+		},
+		DeleteFunc: func(obj interface{}) {
+			// t.Logf("delete obj:%+v", obj)
+		},
+	})
 
 	stopCh := make(chan struct{})
 	client.SharedInformerFactory.Start(stopCh)
@@ -45,7 +65,12 @@ func TestNewClient(t *testing.T) {
 	for !informer.HasSynced() {
 		time.Sleep(time.Millisecond * 100)
 	}
-	t.Log("test success")
+	t.Log("sync pod success")
+
+	for !genericInformer.Informer().HasSynced() {
+		time.Sleep(time.Millisecond * 100)
+	}
+	t.Log("sync appsets success")
 
 	time.Sleep(time.Second * 10)
 }
