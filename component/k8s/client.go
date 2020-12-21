@@ -3,6 +3,8 @@ package k8s
 import (
 	"os"
 
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/dynamic/dynamicinformer"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -12,10 +14,12 @@ import (
 type Client struct {
 	*option
 
-	KubeRestConfig        *rest.Config
-	KubeClientSet         *kubernetes.Clientset
-	SharedInformerFactory informers.SharedInformerFactory
-	Status                ConnectStatus
+	KubeClientSet                *kubernetes.Clientset
+	KubeRestConfig               *rest.Config
+	KubeDynamicClient            dynamic.Interface
+	SharedInformerFactory        informers.SharedInformerFactory
+	DynamicSharedInformerFactory dynamicinformer.DynamicSharedInformerFactory
+	Status                       ConnectStatus
 }
 
 func NewClient(opts ...Option) (*Client, error) {
@@ -65,10 +69,12 @@ func (c *Client) BuildClientCmd() (err error) {
 
 func (c *Client) BuildClientSet() error {
 	c.KubeClientSet = kubernetes.NewForConfigOrDie(c.KubeRestConfig)
+	c.KubeDynamicClient = dynamic.NewForConfigOrDie(c.KubeRestConfig)
 	return nil
 }
 
 func (c *Client) BuildInformers() error {
 	c.SharedInformerFactory = informers.NewSharedInformerFactory(c.KubeClientSet, c.resync)
+	c.DynamicSharedInformerFactory = dynamicinformer.NewDynamicSharedInformerFactory(c.KubeDynamicClient, c.resync)
 	return nil
 }
