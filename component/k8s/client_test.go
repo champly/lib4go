@@ -5,6 +5,8 @@ import (
 	"time"
 
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -43,8 +45,8 @@ func TestNewClient(t *testing.T) {
 		},
 	})
 
-	genericInformer := client.DynamicSharedInformerFactory.ForResource(networkingv1beta1.SchemeGroupVersion.WithResource("destinationrules"))
-	genericInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+	dsInformer := client.DynamicSharedInformerFactory.ForResource(networkingv1beta1.SchemeGroupVersion.WithResource("destinationrules")).Informer()
+	dsInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			// us, ok := obj.(*unstructured.Unstructured)
 			// if ok {
@@ -62,6 +64,8 @@ func TestNewClient(t *testing.T) {
 	})
 
 	stopCh := make(chan struct{})
+	defer close(stopCh)
+
 	client.SharedInformerFactory.Start(stopCh)
 	client.DynamicSharedInformerFactory.Start(stopCh)
 
@@ -70,10 +74,28 @@ func TestNewClient(t *testing.T) {
 	}
 	t.Log("sync pod success")
 
-	for !genericInformer.Informer().HasSynced() {
+	for !dsInformer.HasSynced() {
 		time.Sleep(time.Millisecond * 100)
 	}
 	t.Log("sync destinationrules success")
+
+	ds := &networkingv1beta1.DestinationRule{}
+	ds.Name = "com.dmall.bmservice.seq-66"
+	ds.Namespace = "sym-admin"
+	item, exist, err := dsInformer.GetIndexer().Get(ds)
+	t.Logf("item:%+v", item)
+	t.Logf("exist:%+v", exist)
+	t.Logf("err:%+v", err)
+	if err == nil && exist {
+		dd := &networkingv1beta1.DestinationRule{}
+		us, ok := item.(*unstructured.Unstructured)
+		if ok {
+			err = runtime.DefaultUnstructuredConverter.FromUnstructured(us.UnstructuredContent(), dd)
+			if err == nil {
+				t.Logf("ds:%+v", dd)
+			}
+		}
+	}
 
 	time.Sleep(time.Second * 10)
 }
