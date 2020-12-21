@@ -1,25 +1,12 @@
 package k8s
 
 import (
-	"context"
 	"testing"
 	"time"
 
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
 )
-
-var (
-	scheme = runtime.NewScheme()
-)
-
-func init() {
-	networkingv1beta1.AddToScheme(scheme)
-}
 
 func TestNewClient(t *testing.T) {
 	client, err := NewClient()
@@ -28,20 +15,20 @@ func TestNewClient(t *testing.T) {
 		return
 	}
 
-	obj, err := client.KubeDynamicClient.Resource(networkingv1beta1.SchemeGroupVersion.WithResource("destinationrules")).Namespace(v1.NamespaceAll).List(context.TODO(), metav1.ListOptions{Limit: 20})
-	if err != nil {
-		t.Errorf("result get failed:%+v", err)
-		return
-	}
-	dsList := &networkingv1beta1.DestinationRuleList{}
-	err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), dsList)
-	if err != nil {
-		t.Errorf("result get failed:%+v", err)
-		return
-	}
-	for _, ds := range dsList.Items {
-		t.Logf("get ds %s/%s", ds.Namespace, ds.Name)
-	}
+	// obj, err := client.KubeDynamicClient.Resource(networkingv1beta1.SchemeGroupVersion.WithResource("destinationrules")).Namespace(v1.NamespaceAll).List(context.TODO(), metav1.ListOptions{Limit: 20})
+	// if err != nil {
+	//     t.Errorf("result get failed:%+v", err)
+	//     return
+	// }
+	// dsList := &networkingv1beta1.DestinationRuleList{}
+	// err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), dsList)
+	// if err != nil {
+	//     t.Errorf("result get failed:%+v", err)
+	//     return
+	// }
+	// for _, ds := range dsList.Items {
+	//     t.Logf("get ds %s/%s", ds.Namespace, ds.Name)
+	// }
 
 	informer := client.SharedInformerFactory.Core().V1().Pods().Informer()
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -56,30 +43,21 @@ func TestNewClient(t *testing.T) {
 		},
 	})
 
-	dsInformer := client.DynamicSharedInformerFactory.ForResource(networkingv1beta1.SchemeGroupVersion.WithResource("destinationrules")).Informer()
-	dsInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+	genericInformer := client.DynamicSharedInformerFactory.ForResource(networkingv1beta1.SchemeGroupVersion.WithResource("destinationrules"))
+	genericInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-			// runtime.UnstructuredConverter.FromUnstructured()
-			us, ok := obj.(*unstructured.Unstructured)
-			if ok {
-				ds := &networkingv1beta1.DestinationRule{}
-				if err := runtime.DefaultUnstructuredConverter.FromUnstructured(us.UnstructuredContent(), ds); err != nil {
-					t.Errorf("unstructured ds failed:%+v", err)
-				}
-				t.Logf("add ds:%s/%s", ds.Namespace, ds.Name)
-			}
+			// us, ok := obj.(*unstructured.Unstructured)
+			// if ok {
+			//     ds := &networkingv1beta1.DestinationRule{}
+			//     if err := runtime.DefaultUnstructuredConverter.FromUnstructured(us.UnstructuredContent(), ds); err != nil {
+			//         t.Errorf("unstructured ds failed:%+v", err)
+			//     }
+			//     t.Logf("add ds:%s/%s", ds.Namespace, ds.Name)
+			// }
 		},
 		UpdateFunc: func(old, new interface{}) {
-			ds, ok := new.(*networkingv1beta1.DestinationRule)
-			if ok {
-				t.Logf("update ds:%s/%s", ds.Namespace, ds.Name)
-			}
 		},
 		DeleteFunc: func(obj interface{}) {
-			ds, ok := obj.(*networkingv1beta1.DestinationRule)
-			if ok {
-				t.Logf("delete ds:%s/%s", ds.Namespace, ds.Name)
-			}
 		},
 	})
 
@@ -92,7 +70,7 @@ func TestNewClient(t *testing.T) {
 	}
 	t.Log("sync pod success")
 
-	for !dsInformer.HasSynced() {
+	for !genericInformer.Informer().HasSynced() {
 		time.Sleep(time.Millisecond * 100)
 	}
 	t.Log("sync destinationrules success")
