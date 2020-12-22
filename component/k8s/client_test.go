@@ -83,9 +83,6 @@ func TestNewClient(t *testing.T) {
 	ds.Name = "com.dmall.bmservice.seq-66"
 	ds.Namespace = "sym-admin"
 	item, exist, err := dsInformer.GetIndexer().Get(ds)
-	t.Logf("item:%+v", item)
-	t.Logf("exist:%+v", exist)
-	t.Logf("err:%+v", err)
 	if err == nil && exist {
 		dd := &networkingv1beta1.DestinationRule{}
 		us, ok := item.(*unstructured.Unstructured)
