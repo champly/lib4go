@@ -1,4 +1,4 @@
-package k8s
+package k8sClientGo
 
 import "k8s.io/client-go/rest"
 
