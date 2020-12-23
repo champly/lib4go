@@ -30,7 +30,9 @@ func TestMulitCluster(t *testing.T) {
 		clsConfigurationSuffix,
 		WithRuntimeManagerOptions(
 			manager.Options{
-				MetricsBindAddress: "0",
+				MetricsBindAddress:     "0",
+				LeaderElection:         false,
+				HealthProbeBindAddress: "0",
 			},
 		),
 		WithResetConfigFunc(
@@ -61,7 +63,9 @@ func TestMulitCluster(t *testing.T) {
 	}()
 	defer mulitClient.Stop()
 
-	time.Sleep(time.Second * 3)
+	for !mulitClient.HasSynced() {
+		time.Sleep(time.Millisecond * 100)
+	}
 
 	for _, cli := range mulitClient.GetAll() {
 		list := &corev1.PodList{}

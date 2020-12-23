@@ -51,11 +51,9 @@ func TestNewClient(t *testing.T) {
 		}
 	}()
 
-	// for !informer.HasSynced() {
-	//     time.Sleep(time.Second * 1)
-	// }
-
-	time.Sleep(time.Second * 2)
+	for !cli.HasSynced() {
+		time.Sleep(time.Second * 1)
+	}
 
 	ds := &networkingv1beta1.DestinationRule{}
 	if err = cli.CtrRtManager.GetCache().Get(context.TODO(), types.NamespacedName{Namespace: "sym-admin", Name: "com.dmall.bmservice.seq-66"}, ds); err != nil {

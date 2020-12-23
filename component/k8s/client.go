@@ -26,6 +26,7 @@ type Client struct {
 	KubeInterface  kubernetes.Interface
 
 	CtrRtManager manager.Manager
+	InformerList []runtimecache.Informer
 }
 
 // NewClient build Client
@@ -34,7 +35,7 @@ func NewClient(opts ...Option) (*Client, error) {
 	for _, opt := range opts {
 		opt(defaultCfg)
 	}
-	cli := &Client{option: defaultCfg}
+	cli := &Client{option: defaultCfg, InformerList: []runtimecache.Informer{}}
 
 	if err := cli.precheck(); err != nil {
 		return nil, err
@@ -156,7 +157,27 @@ func (cli *Client) AddEventHandler(obj client.Object, handler cache.ResourceEven
 
 // GetInformerWithObj get object informer with cache
 func (cli *Client) GetInformerWithObj(obj client.Object) (runtimecache.Informer, error) {
-	return cli.CtrRtManager.GetCache().GetInformer(context.TODO(), obj)
+	informer, err := cli.CtrRtManager.GetCache().GetInformer(context.TODO(), obj)
+	if err != nil {
+		return nil, err
+	}
+	cli.InformerList = append(cli.InformerList, informer)
+	return informer, nil
+}
+
+// HasSynced return all informer has synced
+func (cli *Client) HasSynced() bool {
+	if !cli.StartStatus {
+		// if not start, the informer will not synced
+		return false
+	}
+
+	for _, informer := range cli.InformerList {
+		if !informer.HasSynced() {
+			return false
+		}
+	}
+	return true
 }
 
 // GetName return cluster name

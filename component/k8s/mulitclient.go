@@ -92,6 +92,9 @@ func (mc *MulitClient) GetConnectedWithName(name string) (*Client, error) {
 
 // GetWithName get cluster with name.
 func (mc *MulitClient) GetWithName(name string) (*Client, error) {
+	mc.l.Lock()
+	defer mc.l.Unlock()
+
 	cli, ok := mc.ClusterCliMap[name]
 	if !ok {
 		return nil, fmt.Errorf("cluster [%s] not found, maybe not registry", name)
@@ -101,6 +104,9 @@ func (mc *MulitClient) GetWithName(name string) (*Client, error) {
 
 // GetAllConnected get all cluster when cluster is connected.
 func (mc *MulitClient) GetAllConnected() []*Client {
+	mc.l.Lock()
+	defer mc.l.Unlock()
+
 	cliList := make([]*Client, 0, len(mc.ClusterCliMap))
 	for _, cli := range mc.ClusterCliMap {
 		if cli.ConnectStatus == Connected {
@@ -112,11 +118,24 @@ func (mc *MulitClient) GetAllConnected() []*Client {
 
 // GetAll get all cluster.
 func (mc *MulitClient) GetAll() []*Client {
+	mc.l.Lock()
+	defer mc.l.Unlock()
+
 	cliList := make([]*Client, 0, len(mc.ClusterCliMap))
 	for _, cli := range mc.ClusterCliMap {
 		cliList = append(cliList, cli)
 	}
 	return cliList
+}
+
+// HasSynced return all cluster has synced
+func (mc *MulitClient) HasSynced() bool {
+	for _, cli := range mc.ClusterCliMap {
+		if !cli.HasSynced() {
+			return false
+		}
+	}
+	return true
 }
 
 // Start start mulitclient
