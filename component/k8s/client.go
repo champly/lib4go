@@ -142,6 +142,7 @@ func (cli *Client) Stop() {
 
 	select {
 	case <-cli.gracefulStopCh:
+		klog.Infof("cluster %s graceful stopd", cli.GetName())
 		return
 	case <-time.After(GracefulStopWaitTimeout):
 		klog.Errorf("close cluster %s timeout", cli.clsname)

@@ -25,6 +25,6 @@ type IClusterInfo interface {
 }
 
 type IClusterConfiguration interface {
-	GetAll() []IClusterInfo
+	GetAll() ([]IClusterInfo, error)
 	GetOptions() []Option
 }

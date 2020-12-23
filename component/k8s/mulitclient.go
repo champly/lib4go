@@ -34,7 +34,12 @@ func NewMulitClient(autoRbTime time.Duration, clusterCfg IClusterConfiguration) 
 		ClusterCliMap:   map[string]*Client{},
 	}
 
-	for _, clsInfo := range mulitCli.ClusterCfg.GetAll() {
+	clsList, err := mulitCli.ClusterCfg.GetAll()
+	if err != nil {
+		return nil, fmt.Errorf("get all cluster info failed:%+v", err)
+	}
+
+	for _, clsInfo := range clsList {
 		cli, err := buildClient(clsInfo, mulitCli.ClusterCfg.GetOptions()...)
 		if err != nil {
 			return nil, err
@@ -176,7 +181,7 @@ func (mc *MulitClient) Start(ctx context.Context) error {
 	mc.ctx = ctx
 	var err error
 	for _, cli := range mc.ClusterCliMap {
-		err = start(mc.ctx, cli, mc.BeforeStartFunc)
+		err = startClient(mc.ctx, cli, mc.BeforeStartFunc)
 		if err != nil {
 			return err
 		}
@@ -184,7 +189,7 @@ func (mc *MulitClient) Start(ctx context.Context) error {
 	return nil
 }
 
-func start(ctx context.Context, cli *Client, beforeFunc BeforeStartFunc) error {
+func startClient(ctx context.Context, cli *Client, beforeFunc BeforeStartFunc) error {
 	err := beforeFunc(cli)
 	if err != nil {
 		return fmt.Errorf("invoke cluster [%s] BeforeStartFunc failed:%+v", cli.GetName(), err)
@@ -238,11 +243,19 @@ func (mc *MulitClient) Rebuild() {
 	mc.l.Lock()
 	defer mc.l.Unlock()
 
-	for _, newcls := range mc.ClusterCfg.GetAll() {
+	newClsList, err := mc.ClusterCfg.GetAll()
+	if err != nil {
+		klog.Errorf("get all cluster info failed:%+v", err)
+	}
+
+	newCliMap := make(map[string]*Client, len(newClsList))
+	// add and check new cluster
+	for _, newcls := range newClsList {
 		// get old client info
 		oldcli, exist := mc.ClusterCliMap[newcls.GetName()]
 		if exist && oldcli.kubeconfig == newcls.GetKubeConfig() {
 			// if kubeconfig not modify
+			newCliMap[oldcli.GetName()] = oldcli
 			continue
 		}
 
@@ -254,7 +267,7 @@ func (mc *MulitClient) Rebuild() {
 		}
 
 		// start new client
-		err = start(mc.ctx, cli, mc.BeforeStartFunc)
+		err = startClient(mc.ctx, cli, mc.BeforeStartFunc)
 		if err != nil {
 			klog.Error(err)
 			return
@@ -265,7 +278,19 @@ func (mc *MulitClient) Rebuild() {
 			oldcli.Stop()
 		}
 
-		mc.ClusterCliMap[cli.GetName()] = cli
+		newCliMap[cli.GetName()] = cli
 		klog.Infof("auto add cluster %s", cli.GetName())
 	}
+
+	// remove unexpect cluster
+	for name, oldcli := range mc.ClusterCliMap {
+		if _, ok := newCliMap[name]; !ok {
+			// not exist, should stop
+			go func(cli *Client) {
+				cli.Stop()
+			}(oldcli)
+		}
+	}
+
+	mc.ClusterCliMap = newCliMap
 }

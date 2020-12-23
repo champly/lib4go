@@ -66,7 +66,6 @@ func TestMulitCluster(t *testing.T) {
 	}
 
 	mulitClient.BeforeStartFunc = func(cli *Client) error {
-		t.Logf("cluster [%s] exec beforstart", cli.GetName())
 		cli.AddEventHandler(&corev1.Pod{}, cache.ResourceEventHandlerFuncs{
 			// AddFunc    func(obj interface{})
 			// UpdateFunc func(oldObj, newObj interface{})
@@ -93,12 +92,22 @@ func TestMulitCluster(t *testing.T) {
 	mulitClient.Start(context.TODO())
 	defer mulitClient.Stop()
 
-	for addOneKube() {
-		time.Sleep(waitRebuildtime)
-		if !mulitClient.HasSynced() {
-			time.Sleep(time.Microsecond * 100)
+	for i := 0; i < 10; i++ {
+		t.Log("add one by one")
+		for addOneKube() {
+			time.Sleep(waitRebuildtime)
+			if !mulitClient.HasSynced() {
+				time.Sleep(time.Microsecond * 100)
+			}
 		}
-		t.Log("-------")
+
+		t.Log("remove one by one")
+		for removeOnKube() {
+			time.Sleep(waitRebuildtime)
+			if !mulitClient.HasSynced() {
+				time.Sleep(time.Microsecond * 100)
+			}
+		}
 	}
 }
 
@@ -117,6 +126,17 @@ func addOneKube() bool {
 		if !strings.HasSuffix(file.Name(), clsConfigurationSuffix) {
 			name := strings.Trim(file.Name(), kubecfgFileBakSuffix)
 			os.Rename(clsConfigurationTmpDir+"/"+file.Name(), clsConfigurationTmpDir+"/"+name)
+			return true
+		}
+	}
+	return false
+}
+
+func removeOnKube() bool {
+	files, _ := ioutil.ReadDir(clsConfigurationTmpDir)
+	for _, file := range files {
+		if strings.HasSuffix(file.Name(), clsConfigurationSuffix) {
+			os.Rename(clsConfigurationTmpDir+"/"+file.Name(), clsConfigurationTmpDir+"/"+file.Name()+kubecfgFileBakSuffix)
 			return true
 		}
 	}

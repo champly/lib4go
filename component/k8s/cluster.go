@@ -10,7 +10,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/klog/v2"
 )
 
 // ClusterCfgWithCM cluster info read from configmap
@@ -34,7 +33,7 @@ func NewClusterCfgWithCM(kubeinterface kubernetes.Interface, namespace string, l
 }
 
 // GetAll get all cluster info
-func (cc *ClusterCfgWithCM) GetAll() []IClusterInfo {
+func (cc *ClusterCfgWithCM) GetAll() ([]IClusterInfo, error) {
 	ctx, cancel := context.WithTimeout(context.TODO(), time.Second*5)
 	defer cancel()
 
@@ -47,8 +46,7 @@ func (cc *ClusterCfgWithCM) GetAll() []IClusterInfo {
 
 	cmlist, err := cc.kubeinterface.CoreV1().ConfigMaps(cc.namespace).List(ctx, metav1.ListOptions{LabelSelector: strings.Join(labelSelectors, ",")})
 	if err != nil {
-		klog.Errorf("get configmap with namespace:%s label:%+v failed:%+v", cc.namespace, cc.label, err)
-		return nil
+		return nil, fmt.Errorf("get configmap with namespace:%s label:%+v failed:%+v", cc.namespace, cc.label, err)
 	}
 
 	clsInfoList := []IClusterInfo{}
@@ -57,7 +55,7 @@ func (cc *ClusterCfgWithCM) GetAll() []IClusterInfo {
 			clsInfoList = append(clsInfoList, BuildClusterInfo(cm.Name, kubecfg))
 		}
 	}
-	return clsInfoList
+	return clsInfoList, nil
 }
 
 // GetOptions get options
@@ -92,11 +90,10 @@ func NewClusterCfgWithDir(kubeinterface kubernetes.Interface, dir, suffix string
 }
 
 // GetAll get all cluster info
-func (cd *ClusterCfgWithDir) GetAll() []IClusterInfo {
+func (cd *ClusterCfgWithDir) GetAll() ([]IClusterInfo, error) {
 	files, err := ioutil.ReadDir(cd.dir)
 	if err != nil {
-		klog.Errorf("read dir %s failed:%+v", cd.dir, err)
-		return nil
+		return nil, fmt.Errorf("read dir %s failed:%+v", cd.dir, err)
 	}
 
 	clsInfoList := []IClusterInfo{}
@@ -105,13 +102,12 @@ func (cd *ClusterCfgWithDir) GetAll() []IClusterInfo {
 			path := cd.dir + "/" + file.Name()
 			data, err := ioutil.ReadFile(path)
 			if err != nil {
-				klog.Errorf("read file %s failed:%+v", path, err)
-				return nil
+				return nil, fmt.Errorf("read file %s failed:%+v", path, err)
 			}
 			clsInfoList = append(clsInfoList, BuildClusterInfo(file.Name(), string(data)))
 		}
 	}
-	return clsInfoList
+	return clsInfoList, nil
 }
 
 // GetOptions options

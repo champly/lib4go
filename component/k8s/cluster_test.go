@@ -34,7 +34,11 @@ func TestClusterCfgWithCM(t *testing.T) {
 	defer cli.Stop()
 
 	cc := NewClusterCfgWithCM(cli.KubeInterface, clsConfigurationNamespace, clsConfigurationLabel, clsConfigurationDataname)
-	clsList := cc.GetAll()
+	clsList, err := cc.GetAll()
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	for _, cls := range clsList {
 		t.Logf("%s found", cls.GetName())
 	}
@@ -65,7 +69,11 @@ func TestClusterCfgWithDir(t *testing.T) {
 		t.Errorf("build cluster configuration with dir failed:%+v", err)
 		return
 	}
-	clsList := cd.GetAll()
+	clsList, err := cd.GetAll()
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	for _, cls := range clsList {
 		t.Logf("%s found", cls.GetName())
 	}
