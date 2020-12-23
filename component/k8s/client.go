@@ -158,3 +158,8 @@ func (cli *Client) AddEventHandler(obj client.Object, handler cache.ResourceEven
 func (cli *Client) GetInformerWithObj(obj client.Object) (runtimecache.Informer, error) {
 	return cli.CtrRtManager.GetCache().GetInformer(context.TODO(), obj)
 }
+
+// GetName return cluster name
+func (cli *Client) GetName() string {
+	return cli.clsname
+}

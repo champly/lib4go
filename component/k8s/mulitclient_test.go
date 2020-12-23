@@ -67,12 +67,12 @@ func TestMulitCluster(t *testing.T) {
 		list := &corev1.PodList{}
 		err = cli.CtrRtManager.GetCache().List(context.TODO(), list, &client.ListOptions{Namespace: "sym-admin"})
 		if err != nil {
-			t.Errorf("get cluster %s podlist failed:%+v", cli.clsname, err)
+			t.Errorf("get cluster %s podlist failed:%+v", cli.GetName(), err)
 			return
 		}
 
 		for _, pod := range list.Items {
-			t.Logf("%s %s/%s", cli.clsname, pod.Namespace, pod.Name)
+			t.Logf("%s %s/%s", cli.GetName(), pod.Namespace, pod.Name)
 		}
 	}
 }

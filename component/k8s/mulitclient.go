@@ -130,7 +130,7 @@ func (mc *MulitClient) Start(ctx context.Context) error {
 		go func(cli *Client) {
 			er := cli.Start(ctx)
 			if er != nil {
-				klog.Errorf("start cluster [%s] failed:%+v", cli.clsname, er)
+				klog.Errorf("start cluster [%s] failed:%+v", cli.GetName(), er)
 			}
 		}(cli)
 	}
