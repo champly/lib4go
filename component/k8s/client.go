@@ -3,6 +3,7 @@ package k8s
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"k8s.io/client-go/kubernetes"
@@ -18,6 +19,8 @@ import (
 // Client wrap controller-runtime client
 type Client struct {
 	*option
+
+	cancel context.CancelFunc
 
 	KubeRestConfig *rest.Config
 	KubeInterface  kubernetes.Interface
@@ -48,6 +51,7 @@ func NewClient(opts ...Option) (*Client, error) {
 
 // precheck pre check config
 func (cli *Client) precheck() error {
+	// cluster name must not empty
 	if cli.clsname == "" {
 		return errors.New("cluster name is empty")
 	}
@@ -60,19 +64,19 @@ func (cli *Client) initialization() error {
 	// Step 1. build restconfig
 	cli.KubeRestConfig, err = buildClientCmd(cli.kubeconfig, cli.rsFns)
 	if err != nil {
-		return err
+		return fmt.Errorf("build kubernetes restconfig failed:%+v", err)
 	}
 
 	// Step 2. build kubernetes interface
 	cli.KubeInterface, err = buildKubeInterface(cli.KubeRestConfig)
 	if err != nil {
-		return err
+		return fmt.Errorf("build kubernetes interface failed:%+v", err)
 	}
 
 	// Step 3. build controller-runtime manager
 	cli.CtrRtManager, err = controllers.NewManager(cli.KubeRestConfig, cli.rtManagerOpts)
 	if err != nil {
-		return err
+		return fmt.Errorf("build controller-runtime manager failed:%+v", err)
 	}
 
 	return nil
@@ -81,7 +85,7 @@ func (cli *Client) initialization() error {
 // autoCheck auto check Client connect status
 func (cli *Client) autoCheck() {
 	for {
-		if cli.Status != Initing {
+		if cli.ConnectStatus != Initing {
 			time.Sleep(time.Second * 5)
 		}
 
@@ -90,49 +94,58 @@ func (cli *Client) autoCheck() {
 			klog.Errorf("cluster [%s] check failed:%+v", cli.clsname, err)
 		}
 		if !ok {
-			cli.Status = DisConnected
+			cli.ConnectStatus = DisConnected
 			continue
 		}
 
-		cli.Status = Connected
+		cli.ConnectStatus = Connected
 	}
 }
 
 // Start start client
 func (cli *Client) Start(ctx context.Context) error {
-	var err error
+	if cli.StartStatus {
+		return fmt.Errorf("client %s can't repeat start", cli.clsname)
+	}
 
+	ctx, cancel := context.WithCancel(ctx)
+	cli.cancel = cancel
+
+	var err error
 	ch := make(chan struct{}, 0)
 	go func() {
+		cli.StartStatus = true
 		err = cli.CtrRtManager.Start(ctx)
 		close(ch)
 	}()
 
 	select {
-	case <-cli.stopCh:
-		// invoke Stop
-		close(cli.gracefulStopCh)
-		return nil
 	case <-ch:
 		// controller-manager stop
+		close(cli.gracefulStopCh)
 		return err
 	}
 }
 
 // Stop stop client with timeout 30s
-func (cli *Client) Stop(ctx context.Context) {
-	close(cli.stopCh)
+func (cli *Client) Stop() {
+	if !cli.StartStatus || cli.cancel == nil {
+		return
+	}
+
+	cli.cancel()
 
 	select {
 	case <-cli.gracefulStopCh:
 		return
 	case <-time.After(GracefulStopWaitTimeout):
+		klog.Errorf("close cluster %s timeout", cli.clsname)
 		return
 	}
 }
 
 // AddEventHandler add event handler
-func (cli *Client) AddEventHandler(handler cache.ResourceEventHandler, obj client.Object) error {
+func (cli *Client) AddEventHandler(obj client.Object, handler cache.ResourceEventHandler) error {
 	informer, err := cli.GetInformerWithObj(obj)
 	if err != nil {
 		return err

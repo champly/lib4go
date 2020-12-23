@@ -19,12 +19,12 @@ const (
 type RestConfigFunc func(*rest.Config)
 type BeforeStartFunc func(*Client) error
 
-type ClusterInfo interface {
+type IClusterInfo interface {
 	GetName() string
 	GetKubeConfig() string
-	GetOptions() []Option
 }
 
-type ClusterConfiguration interface {
-	GetAll() []ClusterInfo
+type IClusterConfiguration interface {
+	GetAll() []IClusterInfo
+	GetOptions() []Option
 }

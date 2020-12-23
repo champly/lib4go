@@ -7,23 +7,22 @@ import (
 )
 
 type option struct {
-	stopCh         chan struct{}
 	gracefulStopCh chan struct{}
 	clsname        string
 	kubeconfig     string
 	rtManagerOpts  manager.Options
 	rsFns          []RestConfigFunc
 	resync         time.Duration
-	Status         int
+	ConnectStatus  int
+	StartStatus    bool
 }
 
 func getDefaultCfg() *option {
 	return &option{
-		stopCh:         make(chan struct{}, 0),
 		gracefulStopCh: make(chan struct{}, 0),
 		resync:         0,
 		rtManagerOpts:  manager.Options{},
-		Status:         Initing,
+		ConnectStatus:  Initing,
 	}
 }
 
@@ -35,7 +34,7 @@ func WithKubeConfig(kubeconfig string) Option {
 	}
 }
 
-func WithResetConfigFunc(rsFns []RestConfigFunc) Option {
+func WithResetConfigFunc(rsFns ...RestConfigFunc) Option {
 	return func(opt *option) {
 		opt.rsFns = rsFns
 	}

@@ -31,23 +31,31 @@ func TestNewClient(t *testing.T) {
 		t.Error(err)
 		return
 	}
+	defer cli.Stop()
 
-	informer, err := cli.CtrRtManager.GetCache().GetInformer(context.TODO(), &networkingv1beta1.DestinationRule{})
+	// informer, err := cli.CtrRtManager.GetCache().GetInformer(context.TODO(), &networkingv1beta1.DestinationRule{})
+	// if err != nil {
+	//     t.Error(err)
+	//     return
+	// }
+	// informer.AddEventHandler(cache.ResourceEventHandlerFuncs{})
+	err = cli.AddEventHandler(&networkingv1beta1.DestinationRule{}, cache.ResourceEventHandlerFuncs{})
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{})
 
 	go func() {
-		if err := cli.CtrRtManager.Start(context.TODO()); err != nil {
+		if err := cli.Start(context.TODO()); err != nil {
 			t.Log(err)
 		}
 	}()
 
-	for !informer.HasSynced() {
-		time.Sleep(time.Second * 1)
-	}
+	// for !informer.HasSynced() {
+	//     time.Sleep(time.Second * 1)
+	// }
+
+	time.Sleep(time.Second * 2)
 
 	ds := &networkingv1beta1.DestinationRule{}
 	if err = cli.CtrRtManager.GetCache().Get(context.TODO(), types.NamespacedName{Namespace: "sym-admin", Name: "com.dmall.bmservice.seq-66"}, ds); err != nil {

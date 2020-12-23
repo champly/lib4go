@@ -15,12 +15,12 @@ type MulitClient struct {
 	l sync.Mutex
 
 	BeforeStartFunc BeforeStartFunc
-	ClusterCfg      ClusterConfiguration
+	ClusterCfg      IClusterConfiguration
 	ClusterCliMap   map[string]*Client
 }
 
 // NewMulitClient build MulitClient
-func NewMulitClient(clusterCfg ClusterConfiguration) (*MulitClient, error) {
+func NewMulitClient(clusterCfg IClusterConfiguration) (*MulitClient, error) {
 	mulitCli := &MulitClient{
 		ClusterCfg:    clusterCfg,
 		ClusterCliMap: map[string]*Client{},
@@ -31,7 +31,7 @@ func NewMulitClient(clusterCfg ClusterConfiguration) (*MulitClient, error) {
 		opts := []Option{}
 		opts = append(opts, WithClusterName(clsinfo.GetName()))
 		opts = append(opts, WithKubeConfig(clsinfo.GetKubeConfig()))
-		opts = append(opts, clsinfo.GetOptions()...)
+		opts = append(opts, mulitCli.ClusterCfg.GetOptions()...)
 
 		mulitCli.ClusterCliMap[clsinfo.GetName()], err = NewClient(opts...)
 		if err != nil {
@@ -46,7 +46,7 @@ func NewMulitClient(clusterCfg ClusterConfiguration) (*MulitClient, error) {
 func (mc *MulitClient) AddEventHandler(handler cache.ResourceEventHandler, obj client.Object) error {
 	var err error
 	for name, cli := range mc.ClusterCliMap {
-		err = cli.AddEventHandler(handler, obj)
+		err = cli.AddEventHandler(obj, handler)
 		if err != nil {
 			return fmt.Errorf("cluster [%s] AddEventHandler failed:%+v", name, err)
 		}
@@ -84,7 +84,7 @@ func (mc *MulitClient) GetConnectedWithName(name string) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	if cli.Status != Connected {
+	if cli.ConnectStatus != Connected {
 		return nil, fmt.Errorf("cluster [%s] not connected apiserver", name)
 	}
 	return cli, nil
@@ -103,7 +103,7 @@ func (mc *MulitClient) GetWithName(name string) (*Client, error) {
 func (mc *MulitClient) GetAllConnected() []*Client {
 	cliList := make([]*Client, 0, len(mc.ClusterCliMap))
 	for _, cli := range mc.ClusterCliMap {
-		if cli.Status == Connected {
+		if cli.ConnectStatus == Connected {
 			cliList = append(cliList, cli)
 		}
 	}
@@ -135,4 +135,18 @@ func (mc *MulitClient) Start(ctx context.Context) error {
 		}(cli)
 	}
 	return nil
+}
+
+// Stop mulitclient
+func (mc *MulitClient) Stop() {
+	wg := &sync.WaitGroup{}
+	for _, cli := range mc.ClusterCliMap {
+		wg.Add(1)
+		go func(cli *Client) {
+			cli.Stop()
+			wg.Done()
+		}(cli)
+	}
+	wg.Wait()
+	return
 }

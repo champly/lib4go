@@ -3,7 +3,7 @@ module github.com/champly/lib4go
 go 1.15
 
 require (
-	github.com/Microsoft/go-winio v0.4.14 // indirect
+	github.com/Microsoft/go-winio v0.4.16 // indirect
 	github.com/champly/gojenkins v1.0.0
 	github.com/docker/distribution v2.7.1+incompatible // indirect
 	github.com/docker/docker v1.13.1
@@ -28,16 +28,11 @@ require (
 	golang.org/x/text v0.3.4
 	golang.org/x/time v0.0.0-20201208040808-7e3f01d25324 // indirect
 	istio.io/client-go v1.8.1
+	k8s.io/api v0.19.6
 	k8s.io/apimachinery v0.20.0
-	k8s.io/client-go v0.19.2
+	k8s.io/client-go v0.19.6
 	k8s.io/klog/v2 v2.4.0
 	k8s.io/utils v0.0.0-20201110183641-67b214c5f920 // indirect
 	mosn.io/pkg v0.0.0-20200729115159-2bd74f20be0f
 	sigs.k8s.io/controller-runtime v0.7.0
-)
-
-replace (
-	k8s.io/api => k8s.io/api v0.19.0
-	k8s.io/apimachinery => k8s.io/apimachinery v0.19.0
-	k8s.io/client-go => k8s.io/client-go v0.19.0
 )
