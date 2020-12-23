@@ -7,22 +7,25 @@ import (
 )
 
 type option struct {
-	gracefulStopCh chan struct{}
-	clsname        string
-	kubeconfig     string
-	rtManagerOpts  manager.Options
-	rsFns          []RestConfigFunc
-	resync         time.Duration
-	ConnectStatus  int
-	StartStatus    bool
+	gracefulStopCh    chan struct{}
+	clsname           string
+	kubeconfig        string
+	rtManagerOpts     manager.Options
+	rsFns             []RestConfigFunc
+	autocheckInterval time.Duration
+	resync            time.Duration
+
+	ConnectStatus int
+	StartStatus   bool
 }
 
 func getDefaultCfg() *option {
 	return &option{
-		gracefulStopCh: make(chan struct{}, 0),
-		resync:         0,
-		rtManagerOpts:  manager.Options{},
-		ConnectStatus:  Initing,
+		gracefulStopCh:    make(chan struct{}, 0),
+		rtManagerOpts:     manager.Options{},
+		autocheckInterval: time.Second * 5,
+		resync:            0,
+		ConnectStatus:     Initing,
 	}
 }
 
@@ -49,5 +52,11 @@ func WithRuntimeManagerOptions(rtManagerOpts manager.Options) Option {
 func WithClusterName(name string) Option {
 	return func(opt *option) {
 		opt.clsname = name
+	}
+}
+
+func WithAutoCheckInterval(interval time.Duration) Option {
+	return func(opt *option) {
+		opt.autocheckInterval = interval
 	}
 }

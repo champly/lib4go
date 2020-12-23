@@ -53,7 +53,7 @@ func NewClient(opts ...Option) (*Client, error) {
 // precheck pre check config
 func (cli *Client) precheck() error {
 	// cluster name must not empty
-	if cli.clsname == "" {
+	if cli.GetName() == "" {
 		return errors.New("cluster name is empty")
 	}
 	return nil
@@ -65,19 +65,19 @@ func (cli *Client) initialization() error {
 	// Step 1. build restconfig
 	cli.KubeRestConfig, err = buildClientCmd(cli.kubeconfig, cli.rsFns)
 	if err != nil {
-		return fmt.Errorf("build kubernetes restconfig failed:%+v", err)
+		return fmt.Errorf("cluster [%s] build kubernetes restconfig failed:%+v", cli.GetName(), err)
 	}
 
 	// Step 2. build kubernetes interface
 	cli.KubeInterface, err = buildKubeInterface(cli.KubeRestConfig)
 	if err != nil {
-		return fmt.Errorf("build kubernetes interface failed:%+v", err)
+		return fmt.Errorf("cluster [%s] build kubernetes interface failed:%+v", cli.GetName(), err)
 	}
 
 	// Step 3. build controller-runtime manager
 	cli.CtrRtManager, err = controllers.NewManager(cli.KubeRestConfig, cli.rtManagerOpts)
 	if err != nil {
-		return fmt.Errorf("build controller-runtime manager failed:%+v", err)
+		return fmt.Errorf("cluster [%s] build controller-runtime manager failed:%+v", cli.GetName(), err)
 	}
 
 	return nil
@@ -85,14 +85,18 @@ func (cli *Client) initialization() error {
 
 // autoCheck auto check Client connect status
 func (cli *Client) autoCheck() {
+	if cli.autocheckInterval <= 0 {
+		return
+	}
+
 	for {
 		if cli.ConnectStatus != Initing {
-			time.Sleep(time.Second * 5)
+			time.Sleep(cli.autocheckInterval)
 		}
 
 		ok, err := healthRequest(cli.KubeInterface, time.Second*5)
 		if err != nil {
-			klog.Errorf("cluster [%s] check failed:%+v", cli.clsname, err)
+			klog.Errorf("cluster [%s] check healthy failed:%+v", cli.clsname, err)
 		}
 		if !ok {
 			cli.ConnectStatus = DisConnected

@@ -2,16 +2,28 @@ package k8s
 
 import (
 	"context"
+	"io/ioutil"
+	"os"
+	"strings"
 	"testing"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"k8s.io/client-go/tools/cache"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
+var (
+	kubecfgFileBakSuffix = ".bak"
+	autoRebuildInterval  = time.Second * 2
+	waitRebuildtime      = time.Second * 3
+	filterNamespace      = "sym-admin"
+)
+
 func TestMulitCluster(t *testing.T) {
+	tempYamlToJson()
+
 	cli, err := NewClient(
 		WithClusterName("test-cluster-configmap"),
 		WithRuntimeManagerOptions(manager.Options{
@@ -47,36 +59,66 @@ func TestMulitCluster(t *testing.T) {
 		return
 	}
 
-	mulitClient, err := NewMulitClient(cdcfg)
+	mulitClient, err := NewMulitClient(autoRebuildInterval, cdcfg)
 	if err != nil {
 		t.Errorf("build mulit client failed:%+v", err)
 		return
 	}
 
 	mulitClient.BeforeStartFunc = func(cli *Client) error {
-		cli.GetInformerWithObj(&corev1.Pod{})
+		t.Logf("cluster [%s] exec beforstart", cli.GetName())
+		cli.AddEventHandler(&corev1.Pod{}, cache.ResourceEventHandlerFuncs{
+			// AddFunc    func(obj interface{})
+			// UpdateFunc func(oldObj, newObj interface{})
+			// DeleteFunc func(obj interface{})
+			AddFunc: func(obj interface{}) {
+				key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
+				if err != nil {
+					t.Errorf("transfor failed:%+v", err)
+					return
+				}
+				ns, name, err := cache.SplitMetaNamespaceKey(key)
+				if err != nil {
+					t.Errorf("split namespace failed:%+v", err)
+					return
+				}
+				if ns == filterNamespace {
+					t.Logf("%s add %s/%s", cli.GetName(), ns, name)
+				}
+			},
+		})
 		return nil
 	}
 
-	go func() {
-		mulitClient.Start(context.TODO())
-	}()
+	mulitClient.Start(context.TODO())
 	defer mulitClient.Stop()
 
-	for !mulitClient.HasSynced() {
-		time.Sleep(time.Millisecond * 100)
-	}
-
-	for _, cli := range mulitClient.GetAll() {
-		list := &corev1.PodList{}
-		err = cli.CtrRtManager.GetCache().List(context.TODO(), list, &client.ListOptions{Namespace: "sym-admin"})
-		if err != nil {
-			t.Errorf("get cluster %s podlist failed:%+v", cli.GetName(), err)
-			return
+	for addOneKube() {
+		time.Sleep(waitRebuildtime)
+		if !mulitClient.HasSynced() {
+			time.Sleep(time.Microsecond * 100)
 		}
+		t.Log("-------")
+	}
+}
 
-		for _, pod := range list.Items {
-			t.Logf("%s %s/%s", cli.GetName(), pod.Namespace, pod.Name)
+func tempYamlToJson() {
+	files, _ := ioutil.ReadDir(clsConfigurationTmpDir)
+	for _, file := range files {
+		if strings.HasSuffix(file.Name(), clsConfigurationSuffix) {
+			os.Rename(clsConfigurationTmpDir+"/"+file.Name(), clsConfigurationTmpDir+"/"+file.Name()+kubecfgFileBakSuffix)
 		}
 	}
+}
+
+func addOneKube() bool {
+	files, _ := ioutil.ReadDir(clsConfigurationTmpDir)
+	for _, file := range files {
+		if !strings.HasSuffix(file.Name(), clsConfigurationSuffix) {
+			name := strings.Trim(file.Name(), kubecfgFileBakSuffix)
+			os.Rename(clsConfigurationTmpDir+"/"+file.Name(), clsConfigurationTmpDir+"/"+name)
+			return true
+		}
+	}
+	return false
 }
