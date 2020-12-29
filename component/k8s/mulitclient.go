@@ -18,7 +18,7 @@ type MulitClient struct {
 	stopCh          chan struct{}
 	BeforeStartFunc BeforeStartFunc
 	ClusterCfg      IClusterConfiguration
-	ClusterCliMap   map[string]*Client
+	clusterCliMap   map[string]*Client
 	reBuildInterval time.Duration
 	l               sync.Mutex
 	started         bool
@@ -30,7 +30,7 @@ func NewMulitClient(autoRbTime time.Duration, clusterCfg IClusterConfiguration) 
 		reBuildInterval: autoRbTime,
 		stopCh:          make(chan struct{}, 0),
 		ClusterCfg:      clusterCfg,
-		ClusterCliMap:   map[string]*Client{},
+		clusterCliMap:   map[string]*Client{},
 	}
 
 	clsList, err := mulitCli.ClusterCfg.GetAll()
@@ -43,7 +43,7 @@ func NewMulitClient(autoRbTime time.Duration, clusterCfg IClusterConfiguration) 
 		if err != nil {
 			return nil, err
 		}
-		mulitCli.ClusterCliMap[clsInfo.GetName()] = cli
+		mulitCli.clusterCliMap[clsInfo.GetName()] = cli
 	}
 
 	return mulitCli, nil
@@ -61,7 +61,7 @@ func buildClient(clsInfo IClusterInfo, options ...Option) (*Client, error) {
 // AddEventHandler add event with mulitclient
 func (mc *MulitClient) AddEventHandler(handler cache.ResourceEventHandler, obj client.Object) error {
 	var err error
-	for name, cli := range mc.ClusterCliMap {
+	for name, cli := range mc.clusterCliMap {
 		err = cli.AddEventHandler(obj, handler)
 		if err != nil {
 			return fmt.Errorf("cluster [%s] AddEventHandler failed:%+v", name, err)
@@ -76,7 +76,7 @@ func (mc *MulitClient) TriggerObjSync(obj client.Object) error {
 	defer mc.l.Unlock()
 
 	var err error
-	for name, cli := range mc.ClusterCliMap {
+	for name, cli := range mc.clusterCliMap {
 		_, err = cli.GetInformerWithObj(obj)
 		if err != nil {
 			return fmt.Errorf("cluster [%s] TriggerObjSync failed:%+v", name, err)
@@ -91,7 +91,7 @@ func (mc *MulitClient) SetIndexField(obj client.Object, field string, extractVal
 	defer mc.l.Unlock()
 
 	var err error
-	for name, cli := range mc.ClusterCliMap {
+	for name, cli := range mc.clusterCliMap {
 		err = cli.CtrRtManager.GetFieldIndexer().IndexField(context.TODO(), obj, field, extractValue)
 		if err != nil {
 			return fmt.Errorf("cluster [%s] SetIndexField [%s] failed:%+v", name, field, err)
@@ -129,7 +129,7 @@ func (mc *MulitClient) GetWithName(name string) (*Client, error) {
 	mc.l.Lock()
 	defer mc.l.Unlock()
 
-	cli, ok := mc.ClusterCliMap[name]
+	cli, ok := mc.clusterCliMap[name]
 	if !ok {
 		return nil, fmt.Errorf("cluster [%s] not found, maybe not registry", name)
 	}
@@ -141,8 +141,8 @@ func (mc *MulitClient) GetAllConnected() []*Client {
 	mc.l.Lock()
 	defer mc.l.Unlock()
 
-	cliList := make([]*Client, 0, len(mc.ClusterCliMap))
-	for _, cli := range mc.ClusterCliMap {
+	cliList := make([]*Client, 0, len(mc.clusterCliMap))
+	for _, cli := range mc.clusterCliMap {
 		if cli.ConnectStatus == Connected {
 			cliList = append(cliList, cli)
 		}
@@ -155,8 +155,8 @@ func (mc *MulitClient) GetAllReady() []*Client {
 	mc.l.Lock()
 	defer mc.l.Unlock()
 
-	cliList := make([]*Client, 0, len(mc.ClusterCliMap))
-	for _, cli := range mc.ClusterCliMap {
+	cliList := make([]*Client, 0, len(mc.clusterCliMap))
+	for _, cli := range mc.clusterCliMap {
 		if cli.ConnectStatus == Connected && cli.HasSynced() {
 			cliList = append(cliList, cli)
 		}
@@ -169,8 +169,8 @@ func (mc *MulitClient) GetAll() []*Client {
 	mc.l.Lock()
 	defer mc.l.Unlock()
 
-	cliList := make([]*Client, 0, len(mc.ClusterCliMap))
-	for _, cli := range mc.ClusterCliMap {
+	cliList := make([]*Client, 0, len(mc.clusterCliMap))
+	for _, cli := range mc.clusterCliMap {
 		cliList = append(cliList, cli)
 	}
 	return cliList
@@ -181,7 +181,7 @@ func (mc *MulitClient) HasSynced() bool {
 	mc.l.Lock()
 	defer mc.l.Unlock()
 
-	for _, cli := range mc.ClusterCliMap {
+	for _, cli := range mc.clusterCliMap {
 		if !cli.HasSynced() {
 			return false
 		}
@@ -202,7 +202,7 @@ func (mc *MulitClient) Start(ctx context.Context) error {
 
 	mc.ctx = ctx
 	var err error
-	for _, cli := range mc.ClusterCliMap {
+	for _, cli := range mc.clusterCliMap {
 		err = startClient(mc.ctx, cli, mc.BeforeStartFunc)
 		if err != nil {
 			return err
@@ -229,7 +229,7 @@ func (mc *MulitClient) Stop() {
 	close(mc.stopCh)
 
 	wg := &sync.WaitGroup{}
-	for _, cli := range mc.ClusterCliMap {
+	for _, cli := range mc.clusterCliMap {
 		wg.Add(1)
 		go func(cli *Client) {
 			cli.Stop()
@@ -273,7 +273,7 @@ func (mc *MulitClient) Rebuild() {
 	// add and check new cluster
 	for _, newcls := range newClsList {
 		// get old client info
-		oldcli, exist := mc.ClusterCliMap[newcls.GetName()]
+		oldcli, exist := mc.clusterCliMap[newcls.GetName()]
 		if exist && oldcli.kubeconfig == newcls.GetKubeConfig() {
 			// if kubeconfig not modify
 			newCliMap[oldcli.GetName()] = oldcli
@@ -304,7 +304,7 @@ func (mc *MulitClient) Rebuild() {
 	}
 
 	// remove unexpect cluster
-	for name, oldcli := range mc.ClusterCliMap {
+	for name, oldcli := range mc.clusterCliMap {
 		if _, ok := newCliMap[name]; !ok {
 			// not exist, should stop
 			go func(cli *Client) {
@@ -313,5 +313,5 @@ func (mc *MulitClient) Rebuild() {
 		}
 	}
 
-	mc.ClusterCliMap = newCliMap
+	mc.clusterCliMap = newCliMap
 }
