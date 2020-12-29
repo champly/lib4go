@@ -6,8 +6,9 @@ import (
 	"time"
 
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/cache"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
@@ -17,7 +18,8 @@ var (
 )
 
 func init() {
-	networkingv1beta1.AddToScheme(scheme)
+	_ = clientgoscheme.AddToScheme(scheme)
+	_ = networkingv1beta1.AddToScheme(scheme)
 }
 
 func TestNewClient(t *testing.T) {
@@ -33,13 +35,13 @@ func TestNewClient(t *testing.T) {
 	}
 	defer cli.Stop()
 
-	// informer, err := cli.CtrRtManager.GetCache().GetInformer(context.TODO(), &networkingv1beta1.DestinationRule{})
-	// if err != nil {
-	//     t.Error(err)
-	//     return
-	// }
-	// informer.AddEventHandler(cache.ResourceEventHandlerFuncs{})
-	err = cli.AddEventHandler(&networkingv1beta1.DestinationRule{}, cache.ResourceEventHandlerFuncs{})
+	informer, err := cli.CtrRtManager.GetCache().GetInformer(context.TODO(), &corev1.Pod{})
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{})
+	err = cli.AddEventHandler(&corev1.Pod{}, cache.ResourceEventHandlerFuncs{})
 	if err != nil {
 		t.Error(err)
 		return
@@ -55,10 +57,10 @@ func TestNewClient(t *testing.T) {
 		time.Sleep(time.Second * 1)
 	}
 
-	ds := &networkingv1beta1.DestinationRule{}
-	if err = cli.CtrRtManager.GetCache().Get(context.TODO(), types.NamespacedName{Namespace: "sym-admin", Name: "com.dmall.bmservice.seq-66"}, ds); err != nil {
-		t.Error(err)
-		return
-	}
-	t.Log(ds)
+	// ds := &networkingv1beta1.DestinationRule{}
+	// if err = cli.CtrRtManager.GetCache().Get(context.TODO(), types.NamespacedName{Namespace: "sym-admin", Name: "com.dmall.bmservice.seq-66"}, ds); err != nil {
+	//     t.Error(err)
+	//     return
+	// }
+	// t.Log(ds)
 }
