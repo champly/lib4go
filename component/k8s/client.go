@@ -26,6 +26,8 @@ type Client struct {
 	KubeInterface  kubernetes.Interface
 
 	CtrRtManager manager.Manager
+	CtrRtClient  client.Client
+	CtrRtCache   runtimecache.Cache
 	InformerList []runtimecache.Informer
 }
 
@@ -79,6 +81,8 @@ func (cli *Client) initialization() error {
 	if err != nil {
 		return fmt.Errorf("cluster [%s] build controller-runtime manager failed:%+v", cli.GetName(), err)
 	}
+	cli.CtrRtClient = cli.CtrRtManager.GetClient()
+	cli.CtrRtCache = cli.CtrRtManager.GetCache()
 
 	return nil
 }
