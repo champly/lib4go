@@ -63,7 +63,7 @@ func (cli *Client) precheck() error {
 func (cli *Client) initialization() error {
 	var err error
 	// Step 1. build restconfig
-	cli.KubeRestConfig, err = buildClientCmd(cli.kubeconfig, cli.rsFns)
+	cli.KubeRestConfig, err = buildClientCmd(cli.kubeconfig, cli.context, cli.rsFns)
 	if err != nil {
 		return fmt.Errorf("cluster [%s] build kubernetes restconfig failed:%+v", cli.GetName(), err)
 	}

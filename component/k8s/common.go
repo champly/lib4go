@@ -12,7 +12,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-func buildClientCmd(kubecfg string, rsFns []RestConfigFunc) (*rest.Config, error) {
+func buildClientCmd(kubecfg string, context string, rsFns []RestConfigFunc) (*rest.Config, error) {
 	if kubecfg != "" {
 		info, err := os.Stat(kubecfg)
 		if err != nil || info.Size() == 0 {
@@ -25,6 +25,7 @@ func buildClientCmd(kubecfg string, rsFns []RestConfigFunc) (*rest.Config, error
 	loadingRules.ExplicitPath = kubecfg
 	configOverrides := &clientcmd.ConfigOverrides{
 		ClusterDefaults: clientcmd.ClusterDefaults,
+		CurrentContext:  context,
 	}
 
 	var (

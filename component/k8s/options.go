@@ -10,6 +10,7 @@ type option struct {
 	gracefulStopCh    chan struct{}
 	clsname           string
 	kubeconfig        string
+	context           string
 	rtManagerOpts     manager.Options
 	rsFns             []RestConfigFunc
 	autocheckInterval time.Duration
@@ -34,6 +35,12 @@ type Option func(*option)
 func WithKubeConfig(kubeconfig string) Option {
 	return func(opt *option) {
 		opt.kubeconfig = kubeconfig
+	}
+}
+
+func WithKubeContext(context string) Option {
+	return func(opt *option) {
+		opt.context = context
 	}
 }
 

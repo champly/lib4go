@@ -48,8 +48,8 @@ func TestCreateContainer(t *testing.T) {
 		t.Error(err)
 	}
 	ports := map[int][]int{
-		8080:  []int{8080},
-		50000: []int{50000},
+		8080:  {8080},
+		50000: {50000},
 	}
 	id, err := client.CreateContainer(DefaultRepository, "jenkins", "latest", []string{"/root/jenkins:/root/123"}, ports, "jjjj")
 	if err != nil {
