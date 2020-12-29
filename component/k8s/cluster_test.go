@@ -2,6 +2,7 @@ package k8s
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"k8s.io/client-go/tools/clientcmd"
@@ -46,11 +47,11 @@ func TestClusterCfgWithCM(t *testing.T) {
 }
 
 func TestClusterCfgWithDir(t *testing.T) {
-	// err := buildTmpWithKubeConfig()
-	// if err != nil {
-	//     t.Errorf("buildtempwithkubeconfig failed:%+v", err)
-	//     return
-	// }
+	err := buildTmpWithKubeConfig()
+	if err != nil {
+		t.Errorf("buildtempwithkubeconfig failed:%+v", err)
+		return
+	}
 
 	cli, err := NewClient(
 		WithClusterName("test-cluster-configmap"),
@@ -88,6 +89,9 @@ func buildTmpWithKubeConfig() error {
 		return err
 	}
 	for name, context := range config.Contexts {
+		if !strings.Contains(name, "test-bus") {
+			continue
+		}
 		cfg := clientcmdapi.NewConfig()
 		cfg.APIVersion = config.APIVersion
 		cfg.CurrentContext = name

@@ -112,6 +112,7 @@ func (cli *Client) Start(ctx context.Context) error {
 	if cli.StartStatus {
 		return fmt.Errorf("client %s can't repeat start", cli.clsname)
 	}
+	cli.StartStatus = true
 
 	ctx, cancel := context.WithCancel(ctx)
 	cli.cancel = cancel
@@ -119,8 +120,10 @@ func (cli *Client) Start(ctx context.Context) error {
 	var err error
 	ch := make(chan struct{}, 0)
 	go func() {
-		cli.StartStatus = true
 		err = cli.CtrRtManager.Start(ctx)
+		if err != nil {
+			klog.Errorf("start cluster [%s] have error:%+v", cli.GetName(), err)
+		}
 		close(ch)
 	}()
 

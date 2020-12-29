@@ -219,12 +219,8 @@ func startClient(ctx context.Context, cli *Client, beforeFunc BeforeStartFunc) e
 		}
 	}
 
-	go func(cli *Client) {
-		er := cli.Start(ctx)
-		if er != nil {
-			klog.Errorf("start cluster [%s] failed:%+v", cli.GetName(), er)
-		}
-	}(cli)
+	go cli.Start(ctx)
+
 	return nil
 }
 
