@@ -14,15 +14,14 @@ import (
 
 // MulitClient mulit cluster client obj
 type MulitClient struct {
-	l               sync.Mutex
-	started         bool
 	ctx             context.Context
-	reBuildInterval time.Duration
 	stopCh          chan struct{}
-
 	BeforeStartFunc BeforeStartFunc
 	ClusterCfg      IClusterConfiguration
 	ClusterCliMap   map[string]*Client
+	reBuildInterval time.Duration
+	l               sync.Mutex
+	started         bool
 }
 
 // NewMulitClient build MulitClient
@@ -73,6 +72,9 @@ func (mc *MulitClient) AddEventHandler(handler cache.ResourceEventHandler, obj c
 
 // TriggerObjSync only trigger informer sync obj
 func (mc *MulitClient) TriggerObjSync(obj client.Object) error {
+	mc.l.Lock()
+	defer mc.l.Unlock()
+
 	var err error
 	for name, cli := range mc.ClusterCliMap {
 		_, err = cli.GetInformerWithObj(obj)
@@ -85,6 +87,9 @@ func (mc *MulitClient) TriggerObjSync(obj client.Object) error {
 
 // SetIndexField set informer indexfield
 func (mc *MulitClient) SetIndexField(obj client.Object, field string, extractValue client.IndexerFunc) error {
+	mc.l.Lock()
+	defer mc.l.Unlock()
+
 	var err error
 	for name, cli := range mc.ClusterCliMap {
 		err = cli.CtrRtManager.GetFieldIndexer().IndexField(context.TODO(), obj, field, extractValue)
@@ -105,6 +110,18 @@ func (mc *MulitClient) GetConnectedWithName(name string) (*Client, error) {
 		return nil, fmt.Errorf("cluster [%s] not connected apiserver", name)
 	}
 	return cli, nil
+}
+
+// GetReadyWithName get cluster with name and cluster is healthy and status ready.
+func (mc *MulitClient) GetReadyWithName(name string) (*Client, error) {
+	cli, err := mc.GetWithName(name)
+	if err != nil {
+		return nil, err
+	}
+	if cli.ConnectStatus == Connected && cli.HasSynced() {
+		return cli, nil
+	}
+	return nil, fmt.Errorf("cluster [%s] not connected apiserver or not ready", name)
 }
 
 // GetWithName get cluster with name.
@@ -161,6 +178,9 @@ func (mc *MulitClient) GetAll() []*Client {
 
 // HasSynced return all cluster has synced
 func (mc *MulitClient) HasSynced() bool {
+	mc.l.Lock()
+	defer mc.l.Unlock()
+
 	for _, cli := range mc.ClusterCliMap {
 		if !cli.HasSynced() {
 			return false
@@ -174,8 +194,10 @@ func (mc *MulitClient) Start(ctx context.Context) error {
 	if mc.started {
 		return errors.New("not restart mulitclient")
 	}
-	mc.started = true
+	mc.l.Lock()
+	defer mc.l.Unlock()
 
+	mc.started = true
 	go mc.autoRebuild()
 
 	mc.ctx = ctx
@@ -190,9 +212,11 @@ func (mc *MulitClient) Start(ctx context.Context) error {
 }
 
 func startClient(ctx context.Context, cli *Client, beforeFunc BeforeStartFunc) error {
-	err := beforeFunc(cli)
-	if err != nil {
-		return fmt.Errorf("invoke cluster [%s] BeforeStartFunc failed:%+v", cli.GetName(), err)
+	if beforeFunc != nil {
+		err := beforeFunc(cli)
+		if err != nil {
+			return fmt.Errorf("invoke cluster [%s] BeforeStartFunc failed:%+v", cli.GetName(), err)
+		}
 	}
 
 	go func(cli *Client) {
@@ -246,6 +270,7 @@ func (mc *MulitClient) Rebuild() {
 	newClsList, err := mc.ClusterCfg.GetAll()
 	if err != nil {
 		klog.Errorf("get all cluster info failed:%+v", err)
+		return
 	}
 
 	newCliMap := make(map[string]*Client, len(newClsList))
