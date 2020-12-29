@@ -21,7 +21,7 @@ var (
 	filterNamespace      = "sym-admin"
 )
 
-func TestMulitCluster(t *testing.T) {
+func TestMultiCluster(t *testing.T) {
 	tempYamlToJson()
 
 	cli, err := NewClient(
@@ -59,13 +59,13 @@ func TestMulitCluster(t *testing.T) {
 		return
 	}
 
-	mulitClient, err := NewMulitClient(autoRebuildInterval, cdcfg)
+	multiClient, err := NewMultiClient(autoRebuildInterval, cdcfg)
 	if err != nil {
-		t.Errorf("build mulit client failed:%+v", err)
+		t.Errorf("build multi client failed:%+v", err)
 		return
 	}
 
-	mulitClient.BeforeStartFuncList = append(mulitClient.BeforeStartFuncList, func(cli *Client) error {
+	multiClient.BeforeStartFuncList = append(multiClient.BeforeStartFuncList, func(cli *Client) error {
 		cli.AddEventHandler(&corev1.Pod{}, cache.ResourceEventHandlerFuncs{
 			// AddFunc    func(obj interface{})
 			// UpdateFunc func(oldObj, newObj interface{})
@@ -89,14 +89,14 @@ func TestMulitCluster(t *testing.T) {
 		return nil
 	})
 
-	mulitClient.Start(context.TODO())
-	defer mulitClient.Stop()
+	multiClient.Start(context.TODO())
+	defer multiClient.Stop()
 
 	for i := 0; i < 10; i++ {
 		t.Log("add one by one")
 		for addOneKube() {
 			time.Sleep(waitRebuildtime)
-			if !mulitClient.HasSynced() {
+			if !multiClient.HasSynced() {
 				time.Sleep(time.Microsecond * 100)
 			}
 		}
@@ -104,7 +104,7 @@ func TestMulitCluster(t *testing.T) {
 		t.Log("remove one by one")
 		for removeOnKube() {
 			time.Sleep(waitRebuildtime)
-			if !mulitClient.HasSynced() {
+			if !multiClient.HasSynced() {
 				time.Sleep(time.Microsecond * 100)
 			}
 		}

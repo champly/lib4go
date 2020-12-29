@@ -12,8 +12,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// MulitClient mulit cluster client obj
-type MulitClient struct {
+// MultiClient multi cluster client obj
+type MultiClient struct {
 	ctx             context.Context
 	started         bool
 	stopCh          chan struct{}
@@ -25,9 +25,9 @@ type MulitClient struct {
 	ClusterCfg          IClusterConfiguration
 }
 
-// NewMulitClient build MulitClient
-func NewMulitClient(autoRbTime time.Duration, clusterCfg IClusterConfiguration) (*MulitClient, error) {
-	mulitCli := &MulitClient{
+// NewMultiClient build MultiClient
+func NewMultiClient(autoRbTime time.Duration, clusterCfg IClusterConfiguration) (*MultiClient, error) {
+	multiCli := &MultiClient{
 		reBuildInterval:     autoRbTime,
 		stopCh:              make(chan struct{}, 0),
 		ClusterCfg:          clusterCfg,
@@ -35,20 +35,20 @@ func NewMulitClient(autoRbTime time.Duration, clusterCfg IClusterConfiguration) 
 		BeforeStartFuncList: []BeforeStartFunc{},
 	}
 
-	clsList, err := mulitCli.ClusterCfg.GetAll()
+	clsList, err := multiCli.ClusterCfg.GetAll()
 	if err != nil {
 		return nil, fmt.Errorf("get all cluster info failed:%+v", err)
 	}
 
 	for _, clsInfo := range clsList {
-		cli, err := buildClient(clsInfo, mulitCli.ClusterCfg.GetOptions()...)
+		cli, err := buildClient(clsInfo, multiCli.ClusterCfg.GetOptions()...)
 		if err != nil {
 			return nil, err
 		}
-		mulitCli.clusterCliMap[clsInfo.GetName()] = cli
+		multiCli.clusterCliMap[clsInfo.GetName()] = cli
 	}
 
-	return mulitCli, nil
+	return multiCli, nil
 }
 
 func buildClient(clsInfo IClusterInfo, options ...Option) (*Client, error) {
@@ -60,8 +60,8 @@ func buildClient(clsInfo IClusterInfo, options ...Option) (*Client, error) {
 	return NewClient(opts...)
 }
 
-// AddEventHandler add event with mulitclient
-func (mc *MulitClient) AddEventHandler(handler cache.ResourceEventHandler, obj client.Object) error {
+// AddEventHandler add event with multiclient
+func (mc *MultiClient) AddEventHandler(handler cache.ResourceEventHandler, obj client.Object) error {
 	var err error
 	for name, cli := range mc.clusterCliMap {
 		err = cli.AddEventHandler(obj, handler)
@@ -73,7 +73,7 @@ func (mc *MulitClient) AddEventHandler(handler cache.ResourceEventHandler, obj c
 }
 
 // TriggerObjSync only trigger informer sync obj
-func (mc *MulitClient) TriggerObjSync(obj client.Object) error {
+func (mc *MultiClient) TriggerObjSync(obj client.Object) error {
 	mc.l.Lock()
 	defer mc.l.Unlock()
 
@@ -88,7 +88,7 @@ func (mc *MulitClient) TriggerObjSync(obj client.Object) error {
 }
 
 // SetIndexField set informer indexfield
-func (mc *MulitClient) SetIndexField(obj client.Object, field string, extractValue client.IndexerFunc) error {
+func (mc *MultiClient) SetIndexField(obj client.Object, field string, extractValue client.IndexerFunc) error {
 	mc.l.Lock()
 	defer mc.l.Unlock()
 
@@ -103,7 +103,7 @@ func (mc *MulitClient) SetIndexField(obj client.Object, field string, extractVal
 }
 
 // GetConnectedWithName get cluster with name and cluster is healthy.
-func (mc *MulitClient) GetConnectedWithName(name string) (*Client, error) {
+func (mc *MultiClient) GetConnectedWithName(name string) (*Client, error) {
 	cli, err := mc.GetWithName(name)
 	if err != nil {
 		return nil, err
@@ -115,7 +115,7 @@ func (mc *MulitClient) GetConnectedWithName(name string) (*Client, error) {
 }
 
 // GetReadyWithName get cluster with name and cluster is healthy and status ready.
-func (mc *MulitClient) GetReadyWithName(name string) (*Client, error) {
+func (mc *MultiClient) GetReadyWithName(name string) (*Client, error) {
 	cli, err := mc.GetWithName(name)
 	if err != nil {
 		return nil, err
@@ -127,7 +127,7 @@ func (mc *MulitClient) GetReadyWithName(name string) (*Client, error) {
 }
 
 // GetWithName get cluster with name.
-func (mc *MulitClient) GetWithName(name string) (*Client, error) {
+func (mc *MultiClient) GetWithName(name string) (*Client, error) {
 	mc.l.Lock()
 	defer mc.l.Unlock()
 
@@ -139,7 +139,7 @@ func (mc *MulitClient) GetWithName(name string) (*Client, error) {
 }
 
 // GetAllConnected get all cluster when cluster is connected.
-func (mc *MulitClient) GetAllConnected() []*Client {
+func (mc *MultiClient) GetAllConnected() []*Client {
 	mc.l.Lock()
 	defer mc.l.Unlock()
 
@@ -153,7 +153,7 @@ func (mc *MulitClient) GetAllConnected() []*Client {
 }
 
 // GetAllReady get all cluster when cluster is connected and informer has synced
-func (mc *MulitClient) GetAllReady() []*Client {
+func (mc *MultiClient) GetAllReady() []*Client {
 	mc.l.Lock()
 	defer mc.l.Unlock()
 
@@ -167,7 +167,7 @@ func (mc *MulitClient) GetAllReady() []*Client {
 }
 
 // GetAll get all cluster.
-func (mc *MulitClient) GetAll() []*Client {
+func (mc *MultiClient) GetAll() []*Client {
 	mc.l.Lock()
 	defer mc.l.Unlock()
 
@@ -179,7 +179,7 @@ func (mc *MulitClient) GetAll() []*Client {
 }
 
 // HasSynced return all cluster has synced
-func (mc *MulitClient) HasSynced() bool {
+func (mc *MultiClient) HasSynced() bool {
 	mc.l.Lock()
 	defer mc.l.Unlock()
 
@@ -191,10 +191,10 @@ func (mc *MulitClient) HasSynced() bool {
 	return true
 }
 
-// Start start mulitclient
-func (mc *MulitClient) Start(ctx context.Context) error {
+// Start start multiclient
+func (mc *MultiClient) Start(ctx context.Context) error {
 	if mc.started {
-		return errors.New("not restart mulitclient")
+		return errors.New("not restart multiclient")
 	}
 	mc.l.Lock()
 	defer mc.l.Unlock()
@@ -226,8 +226,8 @@ func startClient(ctx context.Context, cli *Client, beforeFuncList []BeforeStartF
 	return nil
 }
 
-// Stop mulitclient
-func (mc *MulitClient) Stop() {
+// Stop multiclient
+func (mc *MultiClient) Stop() {
 	close(mc.stopCh)
 
 	wg := &sync.WaitGroup{}
@@ -242,7 +242,7 @@ func (mc *MulitClient) Stop() {
 	return
 }
 
-func (mc *MulitClient) autoRebuild() {
+func (mc *MultiClient) autoRebuild() {
 	if mc.reBuildInterval <= 0 {
 		return
 	}
@@ -258,7 +258,7 @@ func (mc *MulitClient) autoRebuild() {
 }
 
 // Rebuild rebuild with cluster info
-func (mc *MulitClient) Rebuild() {
+func (mc *MultiClient) Rebuild() {
 	if !mc.started {
 		return
 	}
