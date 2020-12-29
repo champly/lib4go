@@ -15,22 +15,24 @@ import (
 // MulitClient mulit cluster client obj
 type MulitClient struct {
 	ctx             context.Context
+	started         bool
 	stopCh          chan struct{}
-	BeforeStartFunc BeforeStartFunc
-	ClusterCfg      IClusterConfiguration
 	clusterCliMap   map[string]*Client
 	reBuildInterval time.Duration
 	l               sync.Mutex
-	started         bool
+
+	BeforeStartFuncList []BeforeStartFunc
+	ClusterCfg          IClusterConfiguration
 }
 
 // NewMulitClient build MulitClient
 func NewMulitClient(autoRbTime time.Duration, clusterCfg IClusterConfiguration) (*MulitClient, error) {
 	mulitCli := &MulitClient{
-		reBuildInterval: autoRbTime,
-		stopCh:          make(chan struct{}, 0),
-		ClusterCfg:      clusterCfg,
-		clusterCliMap:   map[string]*Client{},
+		reBuildInterval:     autoRbTime,
+		stopCh:              make(chan struct{}, 0),
+		ClusterCfg:          clusterCfg,
+		clusterCliMap:       map[string]*Client{},
+		BeforeStartFuncList: []BeforeStartFunc{},
 	}
 
 	clsList, err := mulitCli.ClusterCfg.GetAll()
@@ -203,7 +205,7 @@ func (mc *MulitClient) Start(ctx context.Context) error {
 	mc.ctx = ctx
 	var err error
 	for _, cli := range mc.clusterCliMap {
-		err = startClient(mc.ctx, cli, mc.BeforeStartFunc)
+		err = startClient(mc.ctx, cli, mc.BeforeStartFuncList)
 		if err != nil {
 			return err
 		}
@@ -211,9 +213,9 @@ func (mc *MulitClient) Start(ctx context.Context) error {
 	return nil
 }
 
-func startClient(ctx context.Context, cli *Client, beforeFunc BeforeStartFunc) error {
-	if beforeFunc != nil {
-		err := beforeFunc(cli)
+func startClient(ctx context.Context, cli *Client, beforeFuncList []BeforeStartFunc) error {
+	for _, bf := range beforeFuncList {
+		err := bf(cli)
 		if err != nil {
 			return fmt.Errorf("invoke cluster [%s] BeforeStartFunc failed:%+v", cli.GetName(), err)
 		}
@@ -288,7 +290,7 @@ func (mc *MulitClient) Rebuild() {
 		}
 
 		// start new client
-		err = startClient(mc.ctx, cli, mc.BeforeStartFunc)
+		err = startClient(mc.ctx, cli, mc.BeforeStartFuncList)
 		if err != nil {
 			klog.Error(err)
 			return

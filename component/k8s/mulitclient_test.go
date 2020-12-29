@@ -65,7 +65,7 @@ func TestMulitCluster(t *testing.T) {
 		return
 	}
 
-	mulitClient.BeforeStartFunc = func(cli *Client) error {
+	mulitClient.BeforeStartFuncList = append(mulitClient.BeforeStartFuncList, func(cli *Client) error {
 		cli.AddEventHandler(&corev1.Pod{}, cache.ResourceEventHandlerFuncs{
 			// AddFunc    func(obj interface{})
 			// UpdateFunc func(oldObj, newObj interface{})
@@ -87,7 +87,7 @@ func TestMulitCluster(t *testing.T) {
 			},
 		})
 		return nil
-	}
+	})
 
 	mulitClient.Start(context.TODO())
 	defer mulitClient.Stop()
