@@ -8,9 +8,11 @@ import (
 	"testing"
 	"time"
 
+	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
@@ -21,22 +23,18 @@ var (
 	filterNamespace      = "default"
 )
 
-func TestMultiCluster(t *testing.T) {
-	tempYamlToJson()
+func TestMultiClusterWithCM(t *testing.T) {
+	buildTmpWithKubeConfig()
+	defer clean()
 
-	cli, err := NewClient(
-		WithClusterName("test-cluster-configmap"),
-		WithRuntimeManagerOptions(manager.Options{
-			MetricsBindAddress: "0",
-		}),
-	)
+	cli, err := NewClient("test-cluster-configmap")
 	if err != nil {
 		t.Errorf("build client failed:%+v", err)
 		return
 	}
 	defer cli.Stop()
 
-	cdcfg, err := NewClusterCfgWithDir(
+	clusterMgr, err := NewClusterCfgWithDir(
 		cli.KubeInterface,
 		clsConfigurationTmpDir,
 		clsConfigurationSuffix,
@@ -60,7 +58,7 @@ func TestMultiCluster(t *testing.T) {
 		return
 	}
 
-	multiClient, err := NewMultiClient(autoRebuildInterval, cdcfg)
+	multiClient, err := NewMultiClient(autoRebuildInterval, clusterMgr)
 	if err != nil {
 		t.Errorf("build multi client failed:%+v", err)
 		return
@@ -112,6 +110,102 @@ func TestMultiCluster(t *testing.T) {
 	}
 }
 
+func TestMultiCluster(t *testing.T) {
+	buildTmpWithKubeConfig()
+	defer clean()
+
+	cli, err := NewClient("test-cluster-configmap")
+	if err != nil {
+		t.Errorf("build client failed:%+v", err)
+		return
+	}
+	defer cli.Stop()
+
+	clusterMgr, err := NewClusterCfgWithDir(
+		cli.KubeInterface,
+		clsConfigurationTmpDir,
+		clsConfigurationSuffix,
+		KubeConfigTypeFile,
+		WithRuntimeManagerOptions(
+			manager.Options{
+				MetricsBindAddress:     "0",
+				LeaderElection:         false,
+				HealthProbeBindAddress: "0",
+				Scheme:                 scheme,
+			},
+		),
+		WithKubeSetRsetConfigFn(
+			func(restcfg *rest.Config) {
+				restcfg.QPS = 100
+				restcfg.Burst = 120
+			},
+		),
+	)
+
+	t.Run("without autoRebuild", func(t *testing.T) {
+		multi, err := NewMultiClient(0, clusterMgr)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		multi.Stop()
+	})
+
+	multi, err := NewMultiClient(autoRebuildInterval, clusterMgr)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	defer multi.Stop()
+
+	t.Run("AddEventHandler", func(t *testing.T) {
+		err := multi.AddEventHandler(&networkingv1beta1.DestinationRule{}, cache.ResourceEventHandlerFuncs{})
+		if err == nil {
+			t.Error("unregistry type must be error")
+		}
+
+		err = multi.AddEventHandler(&corev1.Pod{}, cache.ResourceEventHandlerFuncs{})
+		if err != nil {
+			t.Error(err)
+		}
+	})
+
+	t.Run("TriggerObjSync", func(t *testing.T) {
+		err := multi.TriggerSync(&networkingv1beta1.DestinationRule{})
+		if err == nil {
+			t.Error("unregistry type must be error")
+		}
+
+		err = multi.TriggerSync(&corev1.Pod{})
+		if err != nil {
+			t.Error(err)
+		}
+	})
+
+	t.Run("SetIndexField", func(t *testing.T) {
+		err := multi.SetIndexField(&networkingv1beta1.DestinationRule{}, "name", func(obj client.Object) []string {
+			ds := obj.(*networkingv1beta1.DestinationRule)
+			return []string{ds.Name}
+		})
+		if err == nil {
+			t.Error("unregistry type must be error")
+		}
+
+		err = multi.SetIndexField(&corev1.Pod{}, "status.phase", func(obj client.Object) []string {
+			pod := obj.(*corev1.Pod)
+			return []string{string(pod.Status.Phase)}
+		})
+		if err != nil {
+			t.Error(err)
+		}
+	})
+
+	ctx, cancel := context.WithTimeout(context.TODO(), time.Second*2)
+	defer cancel()
+
+	multi.Start(ctx)
+}
+
 func tempYamlToJson() {
 	files, _ := ioutil.ReadDir(clsConfigurationTmpDir)
 	for _, file := range files {
@@ -142,4 +236,12 @@ func removeOnKube() bool {
 		}
 	}
 	return false
+}
+
+func clean() {
+	files, _ := ioutil.ReadDir(clsConfigurationTmpDir)
+	for _, file := range files {
+		os.Remove(file.Name())
+	}
+	return
 }

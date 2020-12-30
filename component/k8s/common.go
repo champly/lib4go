@@ -48,7 +48,7 @@ func buildClientCmdWithFile(kubeconf string, kubecontext string, setRestConfigFn
 	if kubeconf != "" {
 		info, err := os.Stat(kubeconf)
 		if err != nil || info.Size() == 0 {
-			kubeconf = ""
+			return nil, fmt.Errorf("file %s not exists or empty", kubeconf)
 		}
 	}
 

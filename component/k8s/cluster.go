@@ -14,7 +14,7 @@ import (
 
 // ClusterCfgWithCM cluster info read from configmap
 type ClusterCfgWithCM struct {
-	kubeinterface kubernetes.Interface
+	kubeInterface kubernetes.Interface
 	namespace     string
 	label         map[string]string
 	dataname      string
@@ -22,9 +22,9 @@ type ClusterCfgWithCM struct {
 }
 
 // NewClusterCfgWithCM build clusterconfigmap
-func NewClusterCfgWithCM(kubeinterface kubernetes.Interface, namespace string, label map[string]string, dataname string, options ...Option) ClusterConfigurationManager {
+func NewClusterCfgWithCM(kubeInterface kubernetes.Interface, namespace string, label map[string]string, dataname string, options ...Option) ClusterConfigurationManager {
 	return &ClusterCfgWithCM{
-		kubeinterface: kubeinterface,
+		kubeInterface: kubeInterface,
 		namespace:     namespace,
 		label:         label,
 		dataname:      dataname,
@@ -44,7 +44,7 @@ func (cc *ClusterCfgWithCM) GetAll() ([]ClusterConfigInfo, error) {
 		}
 	}
 
-	cmlist, err := cc.kubeinterface.CoreV1().ConfigMaps(cc.namespace).List(ctx, metav1.ListOptions{LabelSelector: strings.Join(labelSelectors, ",")})
+	cmlist, err := cc.kubeInterface.CoreV1().ConfigMaps(cc.namespace).List(ctx, metav1.ListOptions{LabelSelector: strings.Join(labelSelectors, ",")})
 	if err != nil {
 		return nil, fmt.Errorf("get configmap with namespace:%s label:%+v failed:%+v", cc.namespace, cc.label, err)
 	}
@@ -65,7 +65,7 @@ func (cc *ClusterCfgWithCM) GetOptions() []Option {
 
 // ClusterCfgWithDir cluster info read from dir
 type ClusterCfgWithDir struct {
-	kubeinterface  kubernetes.Interface
+	kubeInterface  kubernetes.Interface
 	dir            string
 	suffix         string
 	options        []Option
@@ -73,7 +73,7 @@ type ClusterCfgWithDir struct {
 }
 
 // NewClusterCfgWithDir build clusterconfigdir
-func NewClusterCfgWithDir(kubeinterface kubernetes.Interface, dir, suffix string, kubeConfigType KubeConfigType, options ...Option) (ClusterConfigurationManager, error) {
+func NewClusterCfgWithDir(kubeInterface kubernetes.Interface, dir, suffix string, kubeConfigType KubeConfigType, options ...Option) (ClusterConfigurationManager, error) {
 	s, err := os.Stat(dir)
 	if err != nil {
 		return nil, fmt.Errorf("%s is not exist or other err:%+v", dir, err)
@@ -83,7 +83,7 @@ func NewClusterCfgWithDir(kubeinterface kubernetes.Interface, dir, suffix string
 	}
 
 	return &ClusterCfgWithDir{
-		kubeinterface:  kubeinterface,
+		kubeInterface:  kubeInterface,
 		dir:            dir,
 		suffix:         suffix,
 		options:        options,

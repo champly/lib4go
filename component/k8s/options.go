@@ -8,7 +8,6 @@ import (
 
 type option struct {
 	stopCh                  chan struct{}
-	clsName                 string
 	kubeConfig              string
 	kubeContext             string
 	kubeConfigType          KubeConfigType
@@ -36,12 +35,6 @@ func buildDefaultCfg() *option {
 }
 
 type Option func(*option)
-
-func WithClusterName(name string) Option {
-	return func(opt *option) {
-		opt.clsName = name
-	}
-}
 
 func WithKubeConfig(kubeConfig string) Option {
 	return func(opt *option) {

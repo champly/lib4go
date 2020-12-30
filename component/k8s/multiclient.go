@@ -52,17 +52,16 @@ func NewMultiClient(rebuildInterval time.Duration, clusterCfgMgr ClusterConfigur
 
 func buildClient(clsInfo ClusterConfigInfo, options ...Option) (*Client, error) {
 	opts := []Option{}
-	opts = append(opts, WithClusterName(clsInfo.GetName()))
 	opts = append(opts, WithKubeConfig(clsInfo.GetKubeConfig()))
 	opts = append(opts, WithKubeContext(clsInfo.GetKubeContext()))
 	opts = append(opts, WithKubeConfigType(clsInfo.GetKubeConfigType()))
 	opts = append(opts, options...)
 
-	return NewClient(opts...)
+	return NewClient(clsInfo.GetName(), opts...)
 }
 
 // AddEventHandler add event with multiclient
-func (mc *MultiClient) AddEventHandler(handler cache.ResourceEventHandler, obj client.Object) error {
+func (mc *MultiClient) AddEventHandler(obj client.Object, handler cache.ResourceEventHandler) error {
 	mc.l.Lock()
 	defer mc.l.Unlock()
 
@@ -76,8 +75,8 @@ func (mc *MultiClient) AddEventHandler(handler cache.ResourceEventHandler, obj c
 	return nil
 }
 
-// TriggerObjSync only trigger informer sync obj
-func (mc *MultiClient) TriggerObjSync(obj client.Object) error {
+// TriggerSync only trigger informer sync obj
+func (mc *MultiClient) TriggerSync(obj client.Object) error {
 	mc.l.Lock()
 	defer mc.l.Unlock()
 

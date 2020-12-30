@@ -19,8 +19,8 @@ import (
 // Client wrap controller-runtime client
 type Client struct {
 	*option
-
-	cancel context.CancelFunc
+	clsName string
+	cancel  context.CancelFunc
 
 	KubeRestConfig *rest.Config
 	KubeInterface  kubernetes.Interface
@@ -32,12 +32,12 @@ type Client struct {
 }
 
 // NewClient build Client
-func NewClient(opts ...Option) (*Client, error) {
+func NewClient(clsName string, opts ...Option) (*Client, error) {
 	cfg := buildDefaultCfg()
 	for _, opt := range opts {
 		opt(cfg)
 	}
-	cli := &Client{option: cfg, InformerList: []runtimecache.Informer{}}
+	cli := &Client{option: cfg, clsName: clsName, InformerList: []runtimecache.Informer{}}
 
 	if err := cli.preCheck(); err != nil {
 		return nil, err

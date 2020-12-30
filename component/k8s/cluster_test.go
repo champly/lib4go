@@ -23,7 +23,7 @@ var (
 
 func TestClusterCfgWithCM(t *testing.T) {
 	cli, err := NewClient(
-		WithClusterName("test-cluster-configmap"),
+		"test-cluster-configmap",
 		WithRuntimeManagerOptions(manager.Options{
 			MetricsBindAddress: "0",
 		}),
@@ -54,7 +54,7 @@ func TestClusterCfgWithDir(t *testing.T) {
 	}
 
 	cli, err := NewClient(
-		WithClusterName("test-cluster-configmap"),
+		"test-cluster-configmap",
 		WithRuntimeManagerOptions(manager.Options{
 			MetricsBindAddress: "0",
 		}),
