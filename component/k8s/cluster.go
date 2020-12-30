@@ -22,7 +22,7 @@ type ClusterCfgWithCM struct {
 }
 
 // NewClusterCfgWithCM build clusterconfigmap
-func NewClusterCfgWithCM(kubeinterface kubernetes.Interface, namespace string, label map[string]string, dataname string, options ...Option) IClusterConfiguration {
+func NewClusterCfgWithCM(kubeinterface kubernetes.Interface, namespace string, label map[string]string, dataname string, options ...Option) ClusterConfigurationManager {
 	return &ClusterCfgWithCM{
 		kubeinterface: kubeinterface,
 		namespace:     namespace,
@@ -33,7 +33,7 @@ func NewClusterCfgWithCM(kubeinterface kubernetes.Interface, namespace string, l
 }
 
 // GetAll get all cluster info
-func (cc *ClusterCfgWithCM) GetAll() ([]IClusterInfo, error) {
+func (cc *ClusterCfgWithCM) GetAll() ([]ClusterConfigInfo, error) {
 	ctx, cancel := context.WithTimeout(context.TODO(), time.Second*5)
 	defer cancel()
 
@@ -49,10 +49,10 @@ func (cc *ClusterCfgWithCM) GetAll() ([]IClusterInfo, error) {
 		return nil, fmt.Errorf("get configmap with namespace:%s label:%+v failed:%+v", cc.namespace, cc.label, err)
 	}
 
-	clsInfoList := []IClusterInfo{}
+	clsInfoList := []ClusterConfigInfo{}
 	for _, cm := range cmlist.Items {
 		if kubecfg, ok := cm.Data[cc.dataname]; ok {
-			clsInfoList = append(clsInfoList, BuildClusterInfo(cm.Name, kubecfg))
+			clsInfoList = append(clsInfoList, BuildClusterInfo(cm.Name, kubecfg, "", KubeConfigTypeRawString))
 		}
 	}
 	return clsInfoList, nil
@@ -65,14 +65,15 @@ func (cc *ClusterCfgWithCM) GetOptions() []Option {
 
 // ClusterCfgWithDir cluster info read from dir
 type ClusterCfgWithDir struct {
-	kubeinterface kubernetes.Interface
-	dir           string
-	suffix        string
-	options       []Option
+	kubeinterface  kubernetes.Interface
+	dir            string
+	suffix         string
+	options        []Option
+	kubeConfigType KubeConfigType
 }
 
 // NewClusterCfgWithDir build clusterconfigdir
-func NewClusterCfgWithDir(kubeinterface kubernetes.Interface, dir, suffix string, options ...Option) (IClusterConfiguration, error) {
+func NewClusterCfgWithDir(kubeinterface kubernetes.Interface, dir, suffix string, kubeConfigType KubeConfigType, options ...Option) (ClusterConfigurationManager, error) {
 	s, err := os.Stat(dir)
 	if err != nil {
 		return nil, fmt.Errorf("%s is not exist or other err:%+v", dir, err)
@@ -82,29 +83,36 @@ func NewClusterCfgWithDir(kubeinterface kubernetes.Interface, dir, suffix string
 	}
 
 	return &ClusterCfgWithDir{
-		kubeinterface: kubeinterface,
-		dir:           dir,
-		suffix:        suffix,
-		options:       options,
+		kubeinterface:  kubeinterface,
+		dir:            dir,
+		suffix:         suffix,
+		options:        options,
+		kubeConfigType: kubeConfigType,
 	}, nil
 }
 
 // GetAll get all cluster info
-func (cd *ClusterCfgWithDir) GetAll() ([]IClusterInfo, error) {
+func (cd *ClusterCfgWithDir) GetAll() ([]ClusterConfigInfo, error) {
 	files, err := ioutil.ReadDir(cd.dir)
 	if err != nil {
 		return nil, fmt.Errorf("read dir %s failed:%+v", cd.dir, err)
 	}
 
-	clsInfoList := []IClusterInfo{}
+	clsInfoList := []ClusterConfigInfo{}
 	for _, file := range files {
 		if strings.HasSuffix(file.Name(), cd.suffix) {
 			path := cd.dir + "/" + file.Name()
-			data, err := ioutil.ReadFile(path)
-			if err != nil {
-				return nil, fmt.Errorf("read file %s failed:%+v", path, err)
+
+			if cd.kubeConfigType == KubeConfigTypeFile {
+				clsInfoList = append(clsInfoList, BuildClusterInfo(file.Name(), path, "", KubeConfigTypeFile))
+			} else {
+				data, err := ioutil.ReadFile(path)
+				if err != nil {
+					return nil, fmt.Errorf("read file %s failed:%+v", path, err)
+				}
+				clsInfoList = append(clsInfoList, BuildClusterInfo(file.Name(), string(data), "", KubeConfigTypeRawString))
 			}
-			clsInfoList = append(clsInfoList, BuildClusterInfo(file.Name(), string(data)))
+
 		}
 	}
 	return clsInfoList, nil
@@ -117,24 +125,37 @@ func (cd *ClusterCfgWithDir) GetOptions() []Option {
 
 // ClusterInfo cluster info
 type ClusterInfo struct {
-	clsname    string
-	kubeconfig string
+	name           string
+	kubeConfig     string
+	kubeContext    string
+	kubeConfigType KubeConfigType
 }
 
 // BuildClusterInfo build cluster info
-func BuildClusterInfo(clsname, kubeconfig string) IClusterInfo {
+func BuildClusterInfo(name, kubeConfig, kubeContext string, kubeConfigType KubeConfigType) ClusterConfigInfo {
 	return &ClusterInfo{
-		clsname:    clsname,
-		kubeconfig: kubeconfig,
+		name:           name,
+		kubeConfig:     kubeConfig,
+		kubeContext:    kubeContext,
+		kubeConfigType: kubeConfigType,
 	}
 }
 
 // GetName get cluster name
 func (ci *ClusterInfo) GetName() string {
-	return ci.clsname
+	return ci.name
 }
 
 // GetKubeConfig get kubernetes config data
 func (ci *ClusterInfo) GetKubeConfig() string {
-	return ci.kubeconfig
+	return ci.kubeConfig
+}
+
+// GetKubeContext get kubeconfig current context
+func (ci *ClusterInfo) GetKubeContext() string {
+	return ci.kubeContext
+}
+
+func (ci *ClusterInfo) GetKubeConfigType() KubeConfigType {
+	return ci.kubeConfigType
 }

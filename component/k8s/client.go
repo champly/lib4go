@@ -25,21 +25,21 @@ type Client struct {
 	KubeRestConfig *rest.Config
 	KubeInterface  kubernetes.Interface
 
-	CtrRtManager manager.Manager
-	CtrRtClient  client.Client
-	CtrRtCache   runtimecache.Cache
-	InformerList []runtimecache.Informer
+	CtrlRtManager manager.Manager
+	CtrlRtClient  client.Client
+	CtrlRtCache   runtimecache.Cache
+	InformerList  []runtimecache.Informer
 }
 
 // NewClient build Client
 func NewClient(opts ...Option) (*Client, error) {
-	defaultCfg := getDefaultCfg()
+	cfg := buildDefaultCfg()
 	for _, opt := range opts {
-		opt(defaultCfg)
+		opt(cfg)
 	}
-	cli := &Client{option: defaultCfg, InformerList: []runtimecache.Informer{}}
+	cli := &Client{option: cfg, InformerList: []runtimecache.Informer{}}
 
-	if err := cli.precheck(); err != nil {
+	if err := cli.preCheck(); err != nil {
 		return nil, err
 	}
 
@@ -47,13 +47,13 @@ func NewClient(opts ...Option) (*Client, error) {
 		return nil, err
 	}
 
-	go cli.autoCheck()
+	go cli.autoHealthCheck()
 
 	return cli, nil
 }
 
-// precheck pre check config
-func (cli *Client) precheck() error {
+// preCheck pre check config
+func (cli *Client) preCheck() error {
 	// cluster name must not empty
 	if cli.GetName() == "" {
 		return errors.New("cluster name is empty")
@@ -65,9 +65,9 @@ func (cli *Client) precheck() error {
 func (cli *Client) initialization() error {
 	var err error
 	// Step 1. build restconfig
-	cli.KubeRestConfig, err = buildClientCmd(cli.kubeconfig, cli.context, cli.rsFns)
+	cli.KubeRestConfig, err = buildClientCmd(cli.kubeConfigType, cli.kubeConfig, cli.kubeContext, cli.setKubeRestConfigFnList)
 	if err != nil {
-		return fmt.Errorf("cluster [%s] build kubernetes restconfig failed:%+v", cli.GetName(), err)
+		return fmt.Errorf("cluster [%s] build kubernetes restConfig with type %s failed:%+v", cli.GetName(), cli.kubeConfigType, err)
 	}
 
 	// Step 2. build kubernetes interface
@@ -77,36 +77,36 @@ func (cli *Client) initialization() error {
 	}
 
 	// Step 3. build controller-runtime manager
-	cli.CtrRtManager, err = controllers.NewManager(cli.KubeRestConfig, cli.rtManagerOpts)
+	cli.CtrlRtManager, err = controllers.NewManager(cli.KubeRestConfig, cli.ctrlRtManagerOpts)
 	if err != nil {
 		return fmt.Errorf("cluster [%s] build controller-runtime manager failed:%+v", cli.GetName(), err)
 	}
-	cli.CtrRtClient = cli.CtrRtManager.GetClient()
-	cli.CtrRtCache = cli.CtrRtManager.GetCache()
+	cli.CtrlRtClient = cli.CtrlRtManager.GetClient()
+	cli.CtrlRtCache = cli.CtrlRtManager.GetCache()
 
 	return nil
 }
 
-// autoCheck auto check Client connect status
-func (cli *Client) autoCheck() {
-	if cli.autocheckInterval <= 0 {
+// autoHealthCheck auto check Client connect status
+func (cli *Client) autoHealthCheck() {
+	if cli.healthCheckInterval <= 0 {
 		return
 	}
 
 	for {
 		if cli.ConnectStatus != Initing {
-			time.Sleep(cli.autocheckInterval)
+			time.Sleep(cli.healthCheckInterval)
 		}
 
-		ok, err := healthRequest(cli.KubeInterface, time.Second*5)
+		ok, err := healthRequestWithTimeout(cli.KubeInterface, time.Second*5)
 		if err != nil {
-			klog.Errorf("cluster [%s] check healthy failed:%+v", cli.clsname, err)
+			// just log error
+			klog.Errorf("cluster [%s] check healthy failed:%+v", cli.GetName(), err)
 		}
 		if !ok {
 			cli.ConnectStatus = DisConnected
 			continue
 		}
-
 		cli.ConnectStatus = Connected
 	}
 }
@@ -114,7 +114,7 @@ func (cli *Client) autoCheck() {
 // Start start client
 func (cli *Client) Start(ctx context.Context) error {
 	if cli.StartStatus {
-		return fmt.Errorf("client %s can't repeat start", cli.clsname)
+		return fmt.Errorf("client %s can't repeat start", cli.GetName())
 	}
 	cli.StartStatus = true
 
@@ -124,9 +124,9 @@ func (cli *Client) Start(ctx context.Context) error {
 	var err error
 	ch := make(chan struct{}, 0)
 	go func() {
-		err = cli.CtrRtManager.Start(ctx)
+		err = cli.CtrlRtManager.Start(ctx)
 		if err != nil {
-			klog.Errorf("start cluster [%s] have error:%+v", cli.GetName(), err)
+			klog.Errorf("start cluster [%s] error:%+v", cli.GetName(), err)
 		}
 		close(ch)
 	}()
@@ -134,7 +134,7 @@ func (cli *Client) Start(ctx context.Context) error {
 	select {
 	case <-ch:
 		// controller-manager stop
-		close(cli.gracefulStopCh)
+		close(cli.stopCh)
 		return err
 	}
 }
@@ -148,11 +148,11 @@ func (cli *Client) Stop() {
 	cli.cancel()
 
 	select {
-	case <-cli.gracefulStopCh:
-		klog.Infof("cluster %s graceful stopd", cli.GetName())
+	case <-cli.stopCh:
+		klog.Infof("cluster %s has been stopped", cli.GetName())
 		return
 	case <-time.After(GracefulStopWaitTimeout):
-		klog.Errorf("close cluster %s timeout", cli.clsname)
+		klog.Errorf("stop cluster %s timeout", cli.GetName())
 		return
 	}
 }
@@ -169,9 +169,9 @@ func (cli *Client) AddEventHandler(obj client.Object, handler cache.ResourceEven
 
 // GetInformerWithObj get object informer with cache
 func (cli *Client) GetInformerWithObj(obj client.Object) (runtimecache.Informer, error) {
-	informer, err := cli.CtrRtManager.GetCache().GetInformer(context.TODO(), obj)
+	informer, err := cli.CtrlRtCache.GetInformer(context.TODO(), obj)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cluster %s GetInformerWithObj error:%+v", cli.GetName(), err)
 	}
 	cli.InformerList = append(cli.InformerList, informer)
 	return informer, nil
@@ -194,5 +194,5 @@ func (cli *Client) HasSynced() bool {
 
 // GetName return cluster name
 func (cli *Client) GetName() string {
-	return cli.clsname
+	return cli.clsName
 }

@@ -7,63 +7,74 @@ import (
 )
 
 type option struct {
-	gracefulStopCh    chan struct{}
-	clsname           string
-	kubeconfig        string
-	context           string
-	rtManagerOpts     manager.Options
-	rsFns             []RestConfigFunc
-	autocheckInterval time.Duration
-	resync            time.Duration
+	stopCh                  chan struct{}
+	clsName                 string
+	kubeConfig              string
+	kubeContext             string
+	kubeConfigType          KubeConfigType
+	ctrlRtManagerOpts       manager.Options
+	setKubeRestConfigFnList []SetKubeRestConfigFn
+	healthCheckInterval     time.Duration
+	resyncInterval          time.Duration
 
 	ConnectStatus int
 	StartStatus   bool
 }
 
-func getDefaultCfg() *option {
+func buildDefaultCfg() *option {
 	return &option{
-		gracefulStopCh:    make(chan struct{}, 0),
-		rtManagerOpts:     manager.Options{},
-		autocheckInterval: time.Second * 5,
-		resync:            0,
-		ConnectStatus:     Initing,
+		stopCh: make(chan struct{}, 0),
+		ctrlRtManagerOpts: manager.Options{
+			LeaderElection:         false,
+			MetricsBindAddress:     "0",
+			HealthProbeBindAddress: "0",
+		},
+		kubeConfigType:      KubeConfigTypeFile,
+		healthCheckInterval: time.Second * 5,
+		ConnectStatus:       Initing,
 	}
 }
 
 type Option func(*option)
 
-func WithKubeConfig(kubeconfig string) Option {
-	return func(opt *option) {
-		opt.kubeconfig = kubeconfig
-	}
-}
-
-func WithKubeContext(context string) Option {
-	return func(opt *option) {
-		opt.context = context
-	}
-}
-
-func WithResetConfigFunc(rsFns ...RestConfigFunc) Option {
-	return func(opt *option) {
-		opt.rsFns = rsFns
-	}
-}
-
-func WithRuntimeManagerOptions(rtManagerOpts manager.Options) Option {
-	return func(opt *option) {
-		opt.rtManagerOpts = rtManagerOpts
-	}
-}
-
 func WithClusterName(name string) Option {
 	return func(opt *option) {
-		opt.clsname = name
+		opt.clsName = name
 	}
 }
 
-func WithAutoCheckInterval(interval time.Duration) Option {
+func WithKubeConfig(kubeConfig string) Option {
 	return func(opt *option) {
-		opt.autocheckInterval = interval
+		opt.kubeConfig = kubeConfig
+	}
+}
+
+func WithKubeContext(kubeContext string) Option {
+	return func(opt *option) {
+		opt.kubeContext = kubeContext
+	}
+}
+
+func WithKubeConfigType(typ KubeConfigType) Option {
+	return func(opt *option) {
+		opt.kubeConfigType = typ
+	}
+}
+
+func WithKubeSetRsetConfigFn(setKubeRestConfigFnList ...SetKubeRestConfigFn) Option {
+	return func(opt *option) {
+		opt.setKubeRestConfigFnList = setKubeRestConfigFnList
+	}
+}
+
+func WithRuntimeManagerOptions(ctrlRtManagerOpts manager.Options) Option {
+	return func(opt *option) {
+		opt.ctrlRtManagerOpts = ctrlRtManagerOpts
+	}
+}
+
+func WithAutoHealthCheckInterval(interval time.Duration) Option {
+	return func(opt *option) {
+		opt.healthCheckInterval = interval
 	}
 }

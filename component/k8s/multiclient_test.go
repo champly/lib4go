@@ -18,7 +18,7 @@ var (
 	kubecfgFileBakSuffix = ".bak"
 	autoRebuildInterval  = time.Second * 2
 	waitRebuildtime      = time.Second * 3
-	filterNamespace      = "sym-admin"
+	filterNamespace      = "default"
 )
 
 func TestMultiCluster(t *testing.T) {
@@ -40,6 +40,7 @@ func TestMultiCluster(t *testing.T) {
 		cli.KubeInterface,
 		clsConfigurationTmpDir,
 		clsConfigurationSuffix,
+		KubeConfigTypeFile,
 		WithRuntimeManagerOptions(
 			manager.Options{
 				MetricsBindAddress:     "0",
@@ -47,7 +48,7 @@ func TestMultiCluster(t *testing.T) {
 				HealthProbeBindAddress: "0",
 			},
 		),
-		WithResetConfigFunc(
+		WithKubeSetRsetConfigFn(
 			func(restcfg *rest.Config) {
 				restcfg.QPS = 100
 				restcfg.Burst = 120
@@ -65,7 +66,7 @@ func TestMultiCluster(t *testing.T) {
 		return
 	}
 
-	multiClient.BeforeStartFuncList = append(multiClient.BeforeStartFuncList, func(cli *Client) error {
+	multiClient.InitHandlerList = append(multiClient.InitHandlerList, func(cli *Client) error {
 		cli.AddEventHandler(&corev1.Pod{}, cache.ResourceEventHandlerFuncs{
 			// AddFunc    func(obj interface{})
 			// UpdateFunc func(oldObj, newObj interface{})
@@ -92,7 +93,7 @@ func TestMultiCluster(t *testing.T) {
 	multiClient.Start(context.TODO())
 	defer multiClient.Stop()
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 1; i++ {
 		t.Log("add one by one")
 		for addOneKube() {
 			time.Sleep(waitRebuildtime)

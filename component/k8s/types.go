@@ -7,24 +7,41 @@ import (
 )
 
 const (
+	// GracefulStopWaitTimeout graceful stop cluster wait time
 	GracefulStopWaitTimeout = time.Second * 30
 )
 
+// Cluster status
 const (
 	Initing = iota
 	Connected
 	DisConnected
 )
 
-type RestConfigFunc func(*rest.Config)
-type BeforeStartFunc func(*Client) error
+type KubeConfigType string
 
-type IClusterInfo interface {
+// Kubeconfig type
+const (
+	KubeConfigTypeRawString KubeConfigType = "RawString"
+	KubeConfigTypeFile      KubeConfigType = "File"
+)
+
+// SetKubeRestConfigFn set kubernetes restconfig info
+type SetKubeRestConfigFn func(*rest.Config)
+
+// InitHandler ...
+type InitHandler func(*Client) error
+
+// ClusterConfigInfo cluster config info
+type ClusterConfigInfo interface {
 	GetName() string
 	GetKubeConfig() string
+	GetKubeContext() string
+	GetKubeConfigType() KubeConfigType
 }
 
-type IClusterConfiguration interface {
-	GetAll() ([]IClusterInfo, error)
+// ClusterConfigurationManager cluster configuration manager
+type ClusterConfigurationManager interface {
+	GetAll() ([]ClusterConfigInfo, error)
 	GetOptions() []Option
 }

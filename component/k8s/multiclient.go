@@ -17,31 +17,30 @@ type MultiClient struct {
 	ctx             context.Context
 	started         bool
 	stopCh          chan struct{}
+	clusterCfgMgr   ClusterConfigurationManager
 	clusterCliMap   map[string]*Client
-	reBuildInterval time.Duration
+	rebuildInterval time.Duration
 	l               sync.Mutex
-
-	BeforeStartFuncList []BeforeStartFunc
-	ClusterCfg          IClusterConfiguration
+	InitHandlerList []InitHandler
 }
 
 // NewMultiClient build MultiClient
-func NewMultiClient(autoRbTime time.Duration, clusterCfg IClusterConfiguration) (*MultiClient, error) {
+func NewMultiClient(rebuildInterval time.Duration, clusterCfgMgr ClusterConfigurationManager) (*MultiClient, error) {
 	multiCli := &MultiClient{
-		reBuildInterval:     autoRbTime,
-		stopCh:              make(chan struct{}, 0),
-		ClusterCfg:          clusterCfg,
-		clusterCliMap:       map[string]*Client{},
-		BeforeStartFuncList: []BeforeStartFunc{},
+		rebuildInterval: rebuildInterval,
+		stopCh:          make(chan struct{}, 0),
+		clusterCfgMgr:   clusterCfgMgr,
+		clusterCliMap:   map[string]*Client{},
+		InitHandlerList: []InitHandler{},
 	}
 
-	clsList, err := multiCli.ClusterCfg.GetAll()
+	clsList, err := multiCli.clusterCfgMgr.GetAll()
 	if err != nil {
 		return nil, fmt.Errorf("get all cluster info failed:%+v", err)
 	}
 
 	for _, clsInfo := range clsList {
-		cli, err := buildClient(clsInfo, multiCli.ClusterCfg.GetOptions()...)
+		cli, err := buildClient(clsInfo, multiCli.clusterCfgMgr.GetOptions()...)
 		if err != nil {
 			return nil, err
 		}
@@ -51,10 +50,12 @@ func NewMultiClient(autoRbTime time.Duration, clusterCfg IClusterConfiguration) 
 	return multiCli, nil
 }
 
-func buildClient(clsInfo IClusterInfo, options ...Option) (*Client, error) {
+func buildClient(clsInfo ClusterConfigInfo, options ...Option) (*Client, error) {
 	opts := []Option{}
 	opts = append(opts, WithClusterName(clsInfo.GetName()))
 	opts = append(opts, WithKubeConfig(clsInfo.GetKubeConfig()))
+	opts = append(opts, WithKubeContext(clsInfo.GetKubeContext()))
+	opts = append(opts, WithKubeConfigType(clsInfo.GetKubeConfigType()))
 	opts = append(opts, options...)
 
 	return NewClient(opts...)
@@ -97,7 +98,7 @@ func (mc *MultiClient) SetIndexField(obj client.Object, field string, extractVal
 
 	var err error
 	for name, cli := range mc.clusterCliMap {
-		err = cli.CtrRtManager.GetFieldIndexer().IndexField(context.TODO(), obj, field, extractValue)
+		err = cli.CtrlRtManager.GetFieldIndexer().IndexField(context.TODO(), obj, field, extractValue)
 		if err != nil {
 			return fmt.Errorf("cluster [%s] SetIndexField [%s] failed:%+v", name, field, err)
 		}
@@ -208,7 +209,7 @@ func (mc *MultiClient) Start(ctx context.Context) error {
 	mc.ctx = ctx
 	var err error
 	for _, cli := range mc.clusterCliMap {
-		err = startClient(mc.ctx, cli, mc.BeforeStartFuncList)
+		err = startClient(mc.ctx, cli, mc.InitHandlerList)
 		if err != nil {
 			return err
 		}
@@ -216,11 +217,11 @@ func (mc *MultiClient) Start(ctx context.Context) error {
 	return nil
 }
 
-func startClient(ctx context.Context, cli *Client, beforeFuncList []BeforeStartFunc) error {
-	for _, bf := range beforeFuncList {
-		err := bf(cli)
+func startClient(ctx context.Context, cli *Client, initHandlerList []InitHandler) error {
+	for _, handler := range initHandlerList {
+		err := handler(cli)
 		if err != nil {
-			return fmt.Errorf("invoke cluster [%s] BeforeStartFunc failed:%+v", cli.GetName(), err)
+			return fmt.Errorf("invoke cluster [%s] InitHandler failed:%+v", cli.GetName(), err)
 		}
 	}
 
@@ -246,7 +247,7 @@ func (mc *MultiClient) Stop() {
 }
 
 func (mc *MultiClient) autoRebuild() {
-	if mc.reBuildInterval <= 0 {
+	if mc.rebuildInterval <= 0 {
 		return
 	}
 
@@ -254,7 +255,7 @@ func (mc *MultiClient) autoRebuild() {
 		select {
 		case <-mc.stopCh:
 			return
-		case <-time.After(mc.reBuildInterval):
+		case <-time.After(mc.rebuildInterval):
 			mc.Rebuild()
 		}
 	}
@@ -268,7 +269,7 @@ func (mc *MultiClient) Rebuild() {
 	mc.l.Lock()
 	defer mc.l.Unlock()
 
-	newClsList, err := mc.ClusterCfg.GetAll()
+	newClsList, err := mc.clusterCfgMgr.GetAll()
 	if err != nil {
 		klog.Errorf("get all cluster info failed:%+v", err)
 		return
@@ -279,21 +280,21 @@ func (mc *MultiClient) Rebuild() {
 	for _, newcls := range newClsList {
 		// get old client info
 		oldcli, exist := mc.clusterCliMap[newcls.GetName()]
-		if exist && oldcli.kubeconfig == newcls.GetKubeConfig() {
+		if exist && oldcli.kubeConfig == newcls.GetKubeConfig() {
 			// if kubeconfig not modify
 			newCliMap[oldcli.GetName()] = oldcli
 			continue
 		}
 
 		// build new client
-		cli, err := buildClient(newcls, mc.ClusterCfg.GetOptions()...)
+		cli, err := buildClient(newcls, mc.clusterCfgMgr.GetOptions()...)
 		if err != nil {
 			klog.Error(err)
 			continue
 		}
 
 		// start new client
-		err = startClient(mc.ctx, cli, mc.BeforeStartFuncList)
+		err = startClient(mc.ctx, cli, mc.InitHandlerList)
 		if err != nil {
 			klog.Error(err)
 			return

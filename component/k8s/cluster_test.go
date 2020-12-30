@@ -65,7 +65,7 @@ func TestClusterCfgWithDir(t *testing.T) {
 	}
 	defer cli.Stop()
 
-	cd, err := NewClusterCfgWithDir(cli.KubeInterface, clsConfigurationTmpDir, clsConfigurationSuffix)
+	cd, err := NewClusterCfgWithDir(cli.KubeInterface, clsConfigurationTmpDir, clsConfigurationSuffix, KubeConfigTypeFile)
 	if err != nil {
 		t.Errorf("build cluster configuration with dir failed:%+v", err)
 		return
@@ -97,6 +97,7 @@ func buildTmpWithKubeConfig() error {
 		cfg.CurrentContext = name
 		cfg.Clusters[context.Cluster] = config.Clusters[context.Cluster]
 		cfg.AuthInfos[context.AuthInfo] = config.AuthInfos[context.AuthInfo]
+		cfg.Contexts[name] = config.Contexts[name]
 
 		clientcmd.WriteToFile(*cfg, clsConfigurationTmpDir+"/"+name+"."+clsConfigurationSuffix)
 	}

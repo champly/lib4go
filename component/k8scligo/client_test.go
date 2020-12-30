@@ -1,4 +1,4 @@
-package k8sClientGo
+package k8scligo
 
 import (
 	"testing"
