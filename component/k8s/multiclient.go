@@ -62,6 +62,9 @@ func buildClient(clsInfo IClusterInfo, options ...Option) (*Client, error) {
 
 // AddEventHandler add event with multiclient
 func (mc *MultiClient) AddEventHandler(handler cache.ResourceEventHandler, obj client.Object) error {
+	mc.l.Lock()
+	defer mc.l.Unlock()
+
 	var err error
 	for name, cli := range mc.clusterCliMap {
 		err = cli.AddEventHandler(obj, handler)
