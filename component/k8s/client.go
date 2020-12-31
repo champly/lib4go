@@ -89,15 +89,7 @@ func (cli *Client) initialization() error {
 
 // autoHealthCheck auto check Client connect status
 func (cli *Client) autoHealthCheck() {
-	if cli.healthCheckInterval <= 0 {
-		return
-	}
-
-	for {
-		if cli.ConnectStatus != Initing {
-			time.Sleep(cli.healthCheckInterval)
-		}
-
+	handler := func() {
 		ok, err := healthRequestWithTimeout(cli.KubeInterface, time.Second*5)
 		if err != nil {
 			// just log error
@@ -105,9 +97,23 @@ func (cli *Client) autoHealthCheck() {
 		}
 		if !ok {
 			cli.ConnectStatus = DisConnected
-			continue
 		}
 		cli.ConnectStatus = Connected
+	}
+
+	handler()
+
+	if cli.healthCheckInterval <= 0 {
+		return
+	}
+
+	for {
+		select {
+		case <-time.After(cli.healthCheckInterval):
+			handler()
+		case <-cli.stopCh:
+			return
+		}
 	}
 }
 

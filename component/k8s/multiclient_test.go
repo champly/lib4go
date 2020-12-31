@@ -200,10 +200,73 @@ func TestMultiCluster(t *testing.T) {
 		}
 	})
 
-	ctx, cancel := context.WithTimeout(context.TODO(), time.Second*2)
-	defer cancel()
+	t.Run("GetConnectedWithName", func(t *testing.T) {
+		_, err := multi.GetConnectedWithName("notfound")
+		if err == nil {
+			t.Error("notfound cluster must be error")
+		}
 
-	multi.Start(ctx)
+		clsList := multi.GetAllConnected()
+		if len(clsList) < 1 {
+			t.Error("connected cluster empty")
+			return
+		}
+
+		_, err = multi.GetConnectedWithName(clsList[0].GetName())
+		if err != nil {
+			t.Error(err)
+		}
+	})
+
+	t.Run("GetAll", func(t *testing.T) {
+		clsList := multi.GetAll()
+		if len(clsList) < 1 {
+			t.Error("cluster empty")
+		}
+	})
+
+	t.Run("before start Rebuild", func(t *testing.T) {
+		err := multi.Rebuild()
+		if err != nil {
+			t.Error(err)
+		}
+	})
+
+	t.Run("before start stop", func(t *testing.T) {
+		multi.Stop()
+	})
+
+	go multi.Start(context.TODO())
+
+	for !multi.HasSynced() {
+		t.Log("multiclient wait sync")
+		time.Sleep(time.Millisecond * 100)
+	}
+
+	t.Run("GetReadyClient", func(t *testing.T) {
+		_, err := multi.GetReadyWithName("notfound")
+		if err == nil {
+			t.Error("notfound cluster must be error")
+		}
+
+		clsList := multi.GetAllReady()
+		if len(clsList) < 1 {
+			t.Error("ready cluster empty")
+			return
+		}
+
+		_, err = multi.GetReadyWithName(clsList[0].GetName())
+		if err != nil {
+			t.Error(err)
+		}
+	})
+
+	t.Run("Rebuild", func(t *testing.T) {
+		err := multi.Rebuild()
+		if err != nil {
+			t.Error(err)
+		}
+	})
 }
 
 func tempYamlToJson() {

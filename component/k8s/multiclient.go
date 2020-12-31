@@ -105,6 +105,18 @@ func (mc *MultiClient) SetIndexField(obj client.Object, field string, extractVal
 	return nil
 }
 
+// GetWithName get cluster with name.
+func (mc *MultiClient) GetWithName(name string) (*Client, error) {
+	mc.l.Lock()
+	defer mc.l.Unlock()
+
+	cli, ok := mc.clusterCliMap[name]
+	if !ok {
+		return nil, fmt.Errorf("cluster [%s] not found, maybe not registry", name)
+	}
+	return cli, nil
+}
+
 // GetConnectedWithName get cluster with name and cluster is healthy.
 func (mc *MultiClient) GetConnectedWithName(name string) (*Client, error) {
 	cli, err := mc.GetWithName(name)
@@ -127,18 +139,6 @@ func (mc *MultiClient) GetReadyWithName(name string) (*Client, error) {
 		return cli, nil
 	}
 	return nil, fmt.Errorf("cluster [%s] not connected apiserver or not ready", name)
-}
-
-// GetWithName get cluster with name.
-func (mc *MultiClient) GetWithName(name string) (*Client, error) {
-	mc.l.Lock()
-	defer mc.l.Unlock()
-
-	cli, ok := mc.clusterCliMap[name]
-	if !ok {
-		return nil, fmt.Errorf("cluster [%s] not found, maybe not registry", name)
-	}
-	return cli, nil
 }
 
 // GetAllConnected get all cluster when cluster is connected.
@@ -231,6 +231,10 @@ func startClient(ctx context.Context, cli *Client, initHandlerList []InitHandler
 
 // Stop multiclient
 func (mc *MultiClient) Stop() {
+	if !mc.started {
+		return
+	}
+
 	close(mc.stopCh)
 
 	wg := &sync.WaitGroup{}
@@ -250,28 +254,32 @@ func (mc *MultiClient) autoRebuild() {
 		return
 	}
 
+	var err error
 	for {
 		select {
 		case <-mc.stopCh:
 			return
 		case <-time.After(mc.rebuildInterval):
-			mc.Rebuild()
+			err = mc.Rebuild()
+			if err != nil {
+				klog.Errorf("Rebuild failed:%+v", err)
+			}
 		}
 	}
 }
 
 // Rebuild rebuild with cluster info
-func (mc *MultiClient) Rebuild() {
+func (mc *MultiClient) Rebuild() error {
 	if !mc.started {
-		return
+		return nil
 	}
+
 	mc.l.Lock()
 	defer mc.l.Unlock()
 
 	newClsList, err := mc.clusterCfgMgr.GetAll()
 	if err != nil {
-		klog.Errorf("get all cluster info failed:%+v", err)
-		return
+		return fmt.Errorf("get all cluster info failed:%+v", err)
 	}
 
 	newCliMap := make(map[string]*Client, len(newClsList))
@@ -295,8 +303,7 @@ func (mc *MultiClient) Rebuild() {
 		// start new client
 		err = startClient(mc.ctx, cli, mc.InitHandlerList)
 		if err != nil {
-			klog.Error(err)
-			return
+			return err
 		}
 
 		if exist {
@@ -319,4 +326,5 @@ func (mc *MultiClient) Rebuild() {
 	}
 
 	mc.clusterCliMap = newCliMap
+	return nil
 }
