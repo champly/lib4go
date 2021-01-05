@@ -27,8 +27,9 @@ func CompareSlice(s1, s2 []string) bool {
 	if len(s1) != len(s2) {
 		return false
 	}
-	if (s1 == nil) != (s2 == nil) {
-		return false
+
+	if len(s1) == 0 && len(s2) == 0 {
+		return true
 	}
 
 	m := make(map[string]struct{}, len(s1))

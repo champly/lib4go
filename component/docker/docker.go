@@ -93,10 +93,6 @@ func (d *DClient) ImageIsExists(image, version string) (bool, error) {
 	return false, nil
 }
 
-// func (d *DClient) Tag(sour, targ string) (err error) {
-// return d.cli.ImageTag(context.Background(), sour, targ)
-// }
-
 func (d *DClient) GetAllContainer() ([]ContainerInfo, error) {
 	list, err := d.cli.ContainerList(context.Background(), types.ContainerListOptions{
 		Size: true,

@@ -28,6 +28,14 @@ func TestCompareSlice(t *testing.T) {
 			},
 			want: false,
 		},
+		{
+			name: "nil",
+			args: args{
+				s1: nil,
+				s2: nil,
+			},
+			want: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

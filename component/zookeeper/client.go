@@ -11,12 +11,9 @@ import (
 // ZkClient zk client struct
 type ZkClient struct {
 	*option
-
-	servers []string
-	timeout time.Duration
-
-	stopCh <-chan struct{}
-
+	servers   []string
+	timeout   time.Duration
+	stopCh    <-chan struct{}
 	conn      *zk.Conn
 	eventChan <-chan zk.Event
 	isConnect bool
