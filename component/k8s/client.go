@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
@@ -26,9 +27,9 @@ type Client struct {
 	KubeInterface  kubernetes.Interface
 
 	CtrlRtManager manager.Manager
-	CtrlRtClient  client.Client
 	CtrlRtCache   runtimecache.Cache
-	InformerList  []runtimecache.Informer
+	ctrlRtClient  client.Client
+	informerList  []runtimecache.Informer
 }
 
 // NewClient build Client
@@ -37,7 +38,7 @@ func NewClient(clsName string, opts ...Option) (*Client, error) {
 	for _, opt := range opts {
 		opt(cfg)
 	}
-	cli := &Client{option: cfg, clsName: clsName, InformerList: []runtimecache.Informer{}}
+	cli := &Client{option: cfg, clsName: clsName, informerList: []runtimecache.Informer{}}
 
 	if err := cli.preCheck(); err != nil {
 		return nil, err
@@ -81,7 +82,7 @@ func (cli *Client) initialization() error {
 	if err != nil {
 		return fmt.Errorf("cluster [%s] build controller-runtime manager failed:%+v", cli.GetName(), err)
 	}
-	cli.CtrlRtClient = cli.CtrlRtManager.GetClient()
+	cli.ctrlRtClient = cli.CtrlRtManager.GetClient()
 	cli.CtrlRtCache = cli.CtrlRtManager.GetCache()
 
 	return nil
@@ -179,7 +180,7 @@ func (cli *Client) GetInformerWithObj(obj client.Object) (runtimecache.Informer,
 	if err != nil {
 		return nil, fmt.Errorf("cluster %s GetInformerWithObj error:%+v", cli.GetName(), err)
 	}
-	cli.InformerList = append(cli.InformerList, informer)
+	cli.informerList = append(cli.informerList, informer)
 	return informer, nil
 }
 
@@ -190,12 +191,112 @@ func (cli *Client) HasSynced() bool {
 		return false
 	}
 
-	for _, informer := range cli.InformerList {
+	for _, informer := range cli.informerList {
 		if !informer.HasSynced() {
 			return false
 		}
 	}
 	return true
+}
+
+// GetObj get obj with requestTimeout
+func (cli *Client) GetObj(key types.NamespacedName, obj client.Object) error {
+	return cli.GetObjWithTimeout(cli.requestTimeout, key, obj)
+}
+
+// GetObjWithTimeout get obj with timeout
+func (cli *Client) GetObjWithTimeout(timeout time.Duration, key types.NamespacedName, obj client.Object) error {
+	if !cli.HasSynced() {
+		return errors.New("client not start or informer not synced")
+	}
+	if timeout < 1 {
+		return cli.ctrlRtClient.Get(context.TODO(), key, obj)
+	}
+
+	ctx, cancel := context.WithTimeout(context.TODO(), timeout)
+	defer cancel()
+
+	return cli.ctrlRtClient.Get(ctx, key, obj)
+}
+
+// CreateObj create obj with requestTimeout
+func (cli *Client) CreateObj(obj client.Object, opts ...client.CreateOption) error {
+	return cli.CreateObjWithTimeout(cli.requestTimeout, obj, opts...)
+}
+
+// CreateObjWithTimeout create obj with timeout
+func (cli *Client) CreateObjWithTimeout(timeout time.Duration, obj client.Object, opts ...client.CreateOption) error {
+	if !cli.HasSynced() {
+		return errors.New("client not start or informer not synced")
+	}
+	if timeout < 1 {
+		return cli.ctrlRtClient.Create(context.TODO(), obj, opts...)
+	}
+
+	ctx, cancel := context.WithTimeout(context.TODO(), timeout)
+	defer cancel()
+
+	return cli.ctrlRtClient.Create(ctx, obj, opts...)
+}
+
+// UpdateObj update obj with timeout requestTimeout
+func (cli *Client) UpdateObj(obj client.Object, opts ...client.UpdateOption) error {
+	return cli.UpdateObjWithTimeout(cli.requestTimeout, obj, opts...)
+}
+
+// UpdateObjWithTimeout update obj with timeout
+func (cli *Client) UpdateObjWithTimeout(timeout time.Duration, obj client.Object, opts ...client.UpdateOption) error {
+	if !cli.HasSynced() {
+		return errors.New("client not start or informer not synced")
+	}
+	if cli.requestTimeout < 1 {
+		return cli.ctrlRtClient.Update(context.TODO(), obj, opts...)
+	}
+
+	ctx, cancel := context.WithTimeout(context.TODO(), timeout)
+	defer cancel()
+
+	return cli.ctrlRtClient.Update(ctx, obj, opts...)
+}
+
+// UpdateObjStatus update obj status with timeout requestTimeout
+func (cli *Client) UpdateObjStatus(obj client.Object, opts ...client.UpdateOption) error {
+	return cli.UpdateObjWithTimeout(cli.requestTimeout, obj, opts...)
+}
+
+// UpdateObjStatusWithTimeout update status obj with timeout
+func (cli *Client) UpdateObjStatusWithTimeout(timeout time.Duration, obj client.Object, opts ...client.UpdateOption) error {
+	if !cli.HasSynced() {
+		return errors.New("client not start or informer not synced")
+	}
+	if cli.requestTimeout < 1 {
+		return cli.ctrlRtClient.Status().Update(context.TODO(), obj, opts...)
+	}
+
+	ctx, cancel := context.WithTimeout(context.TODO(), timeout)
+	defer cancel()
+
+	return cli.ctrlRtClient.Status().Update(ctx, obj, opts...)
+}
+
+// DeleteObj create obj with timeout requestTimeout
+func (cli *Client) DeleteObj(obj client.Object, opts ...client.DeleteOption) error {
+	return cli.DeleteObjWithTimeout(cli.requestTimeout, obj, opts...)
+}
+
+// DeleteObjWithTimeout delete obj with timeout
+func (cli *Client) DeleteObjWithTimeout(timeout time.Duration, obj client.Object, opts ...client.DeleteOption) error {
+	if !cli.HasSynced() {
+		return errors.New("client not start or informer not synced")
+	}
+	if cli.requestTimeout < 1 {
+		return cli.ctrlRtClient.Delete(context.TODO(), obj, opts...)
+	}
+
+	ctx, cancel := context.WithTimeout(context.TODO(), timeout)
+	defer cancel()
+
+	return cli.ctrlRtClient.Delete(ctx, obj, opts...)
 }
 
 // GetName return cluster name

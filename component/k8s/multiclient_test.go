@@ -34,8 +34,7 @@ func TestMultiClusterWithCM(t *testing.T) {
 	}
 	defer cli.Stop()
 
-	clusterMgr, err := NewClusterCfgWithDir(
-		cli.KubeInterface,
+	clusterMgr, err := NewClusterCfgManagerWithDir(
 		clsConfigurationTmpDir,
 		clsConfigurationSuffix,
 		KubeConfigTypeFile,
@@ -121,8 +120,7 @@ func TestMultiCluster(t *testing.T) {
 	}
 	defer cli.Stop()
 
-	clusterMgr, err := NewClusterCfgWithDir(
-		cli.KubeInterface,
+	clusterMgr, err := NewClusterCfgManagerWithDir(
 		clsConfigurationTmpDir,
 		clsConfigurationSuffix,
 		KubeConfigTypeFile,

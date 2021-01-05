@@ -14,6 +14,7 @@ type option struct {
 	ctrlRtManagerOpts       manager.Options
 	setKubeRestConfigFnList []SetKubeRestConfigFn
 	healthCheckInterval     time.Duration
+	requestTimeout          time.Duration
 	resyncInterval          time.Duration
 
 	ConnectStatus int
@@ -30,6 +31,7 @@ func buildDefaultCfg() *option {
 		},
 		kubeConfigType:      KubeConfigTypeFile,
 		healthCheckInterval: time.Second * 5,
+		requestTimeout:      time.Second * 5,
 		ConnectStatus:       Initing,
 	}
 }
@@ -69,5 +71,11 @@ func WithRuntimeManagerOptions(ctrlRtManagerOpts manager.Options) Option {
 func WithAutoHealthCheckInterval(interval time.Duration) Option {
 	return func(opt *option) {
 		opt.healthCheckInterval = interval
+	}
+}
+
+func WithRequestTimeout(timeout time.Duration) Option {
+	return func(opt *option) {
+		opt.requestTimeout = timeout
 	}
 }

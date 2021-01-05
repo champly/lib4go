@@ -34,7 +34,7 @@ func TestClusterCfgWithCM(t *testing.T) {
 	}
 	defer cli.Stop()
 
-	cc := NewClusterCfgWithCM(cli.KubeInterface, clsConfigurationNamespace, clsConfigurationLabel, clsConfigurationDataname)
+	cc := NewClusterCfgManagerWithCM(cli.KubeInterface, clsConfigurationNamespace, clsConfigurationLabel, clsConfigurationDataname)
 	clsList, err := cc.GetAll()
 	if err != nil {
 		t.Error(err)
@@ -65,7 +65,7 @@ func TestClusterCfgWithDir(t *testing.T) {
 	}
 	defer cli.Stop()
 
-	cd, err := NewClusterCfgWithDir(cli.KubeInterface, clsConfigurationTmpDir, clsConfigurationSuffix, KubeConfigTypeFile)
+	cd, err := NewClusterCfgManagerWithDir(clsConfigurationTmpDir, clsConfigurationSuffix, KubeConfigTypeFile)
 	if err != nil {
 		t.Errorf("build cluster configuration with dir failed:%+v", err)
 		return
