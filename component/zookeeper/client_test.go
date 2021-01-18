@@ -14,14 +14,8 @@ func TestNewClient(t *testing.T) {
 		t.Error(err)
 	}
 
-	go func() {
-		if err := zk.Start(signal.SetupSignalHandler()); err != nil {
-			t.Error(err)
-		}
-	}()
-
-	for !zk.IsConnect() {
-		time.Sleep(time.Second * 1)
+	if err := zk.Start(signal.SetupSignalHandler()); err != nil {
+		t.Error(err)
 	}
 
 	path := "/a/b/c/d"

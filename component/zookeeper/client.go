@@ -43,12 +43,10 @@ func (z *ZkClient) Start(ch chan struct{}) error {
 	if z.started > 0 {
 		return fmt.Errorf("zk client not repeat start")
 	}
-	atomic.AddInt32(&z.started, 1)
 
 	if err := z.connect(); err != nil {
 		return err
 	}
-
 	err := WarpperTimeout(func() {
 		for !z.IsConnect() {
 			time.Sleep(time.Millisecond * 10)
@@ -57,10 +55,14 @@ func (z *ZkClient) Start(ch chan struct{}) error {
 	if err != nil {
 		return errors.Wrapf(err, "connect server {%+v} fail:%v", z.servers, err)
 	}
+	atomic.AddInt32(&z.started, 1)
 
-	<-ch
+	go func() {
+		<-ch
+		z.stop()
+	}()
 
-	return z.stop()
+	return nil
 }
 
 // IsConnect return is connect zk server
