@@ -6,15 +6,17 @@ import (
 	"time"
 
 	"github.com/go-zookeeper/zk"
-	"k8s.io/klog/v2"
 )
 
 // HandlerValue handler watch value event
-type HandlerValue func(path string, data string, isEnd bool)
+type HandlerValue func(path string, data string)
+
+// HandlerChildren handler watch children event
+type HandlerChildren func(path string, children []string)
 
 type cb interface {
-	Reconnect() bool
-	Event(e zk.Event) bool
+	Reconnect() (isContinue bool, err error)
+	Event(e zk.Event) (isContinue bool, err error)
 }
 
 type basework struct {
@@ -25,11 +27,21 @@ type basework struct {
 	cb        cb
 }
 
-func (bw *basework) run() {
-	t := time.NewTimer(time.Microsecond * 100)
+func (bw *basework) watch() error {
+	var (
+		isContinue bool
+		err        error
+		t          = time.NewTimer(time.Microsecond * 100)
+	)
 	defer t.Stop()
 
 	for {
+		select {
+		case <-bw.zcli.stopCh:
+			return nil
+		default:
+		}
+
 		if !bw.zcli.IsConnect() {
 			bw.connected = false
 			<-t.C
@@ -37,20 +49,24 @@ func (bw *basework) run() {
 		}
 
 		if !bw.connected {
-			if !bw.cb.Reconnect() {
-				return
+			// client connected, should mark basework connected
+			isContinue, err = bw.cb.Reconnect()
+			if err != nil || !isContinue {
+				return err
 			}
+			bw.connected = true
 		}
 
 		select {
-		case <-bw.stopCh:
-			return
+		case <-bw.zcli.stopCh:
+			return nil
 		case e, ok := <-bw.ch:
 			if !ok {
-				return
+				return nil
 			}
-			if !bw.cb.Event(e) {
-				return
+			isContinue, err = bw.cb.Event(e)
+			if err != nil || !isContinue {
+				return nil
 			}
 		case <-t.C:
 		}
@@ -65,64 +81,57 @@ type workValue struct {
 	handler HandlerValue
 }
 
-func (wv *workValue) Reconnect() bool {
+func (wv *workValue) Reconnect() (bool, error) {
 	data, _, ch, err := wv.zcli.conn.GetW(wv.path)
 	if err != nil {
-		klog.Errorf("reconnect watch value path [%s] fail:%s", wv.path, err)
-		wv.handler(wv.path, "", true)
-		return Stop
+		return Stop, fmt.Errorf("reconnect watch value path [%s] fail:%s", wv.path, err)
 	}
 	wv.ch = ch
 	if !strings.EqualFold(wv.value, string(data)) {
 		wv.value = string(data)
-		wv.handler(wv.path, wv.value, false)
+		wv.handler(wv.path, wv.value)
 	}
 
-	return Continue
+	return Continue, nil
 }
 
-func (wv *workValue) Event(e zk.Event) bool {
+func (wv *workValue) Event(e zk.Event) (bool, error) {
 	switch e.Type {
 
 	case zk.EventNodeDataChanged:
 		data, _, ch, err := wv.zcli.conn.GetW(wv.path)
 		if err != nil {
-			klog.Errorf("rewatch value path [%s] fail:%s", wv.path, err)
-			wv.handler(wv.path, "", true)
-			return Stop
+			return Stop, fmt.Errorf("rewatch value path [%s] fail:%s", wv.path, err)
 		}
 		wv.value = string(data)
 		wv.ch = ch
-		wv.handler(wv.path, wv.value, false)
-		return Continue
+		wv.handler(wv.path, wv.value)
+		return Continue, nil
 
 	default:
 		data, _, ch, err := wv.zcli.conn.GetW(wv.path)
 		if err != nil {
-			klog.Errorf("rewatch value path [%s] fail:%s", wv.path, err)
 			if wv.zcli.IsConnect() {
-				wv.handler(wv.path, "", true)
-				return Stop
+				return Stop, fmt.Errorf("rewatch value path [%s] fail:%s", wv.path, err)
 			}
 			// !import event connect, but conn is closed, should wait reconnected
-			return Continue
+			return Continue, nil
 		}
 
 		wv.ch = ch
 		if !strings.EqualFold(wv.value, string(data)) {
 			wv.value = string(data)
-			wv.handler(wv.path, wv.value, false)
+			wv.handler(wv.path, wv.value)
 		}
 
-		return Continue
+		return Continue, nil
 	}
 }
 
 // WatchValue watch value change
-func (z *ZkClient) WatchValue(path string, handler HandlerValue) (err error) {
+func (z *ZkClient) WatchValue(path string, handler HandlerValue) error {
 	if !z.isConnect {
-		err = ErrClientDisConnect
-		return
+		return ErrClientDisConnect
 	}
 
 	if b, e := z.IsExists(path); !b || e != nil {
@@ -131,8 +140,10 @@ func (z *ZkClient) WatchValue(path string, handler HandlerValue) (err error) {
 
 	data, _, ch, err := z.conn.GetW(path)
 	if err != nil {
-		return
+		return fmt.Errorf("path [%s] getw error:%+v", path, err)
 	}
+	// first invoke handler
+	handler(path, string(data))
 
 	wv := &workValue{
 		basework: &basework{
@@ -147,13 +158,8 @@ func (z *ZkClient) WatchValue(path string, handler HandlerValue) (err error) {
 	}
 	wv.cb = wv
 
-	go wv.run()
-
-	return nil
+	return wv.watch()
 }
-
-// HandlerChildren handler watch children event
-type HandlerChildren func(path string, children []string, isEnd bool)
 
 type workChildren struct {
 	*basework
@@ -163,62 +169,55 @@ type workChildren struct {
 	handler  HandlerChildren
 }
 
-func (wc *workChildren) Reconnect() bool {
+func (wc *workChildren) Reconnect() (bool, error) {
 	children, _, ch, err := wc.zcli.conn.ChildrenW(wc.path)
 	if err != nil {
-		klog.Errorf("reconnect watch value path [%s] fail:%s", wc.path, err)
-		wc.handler(wc.path, nil, true)
-		return Stop
+		return Stop, fmt.Errorf("reconnect watch children path [%s] fail:%s", wc.path, err)
 	}
 	wc.ch = ch
 	if !CompareSlice(wc.children, children) {
 		wc.children = children
-		wc.handler(wc.path, wc.children, false)
+		wc.handler(wc.path, wc.children)
 	}
-	return Continue
+	return Continue, nil
 }
 
-func (wc *workChildren) Event(e zk.Event) bool {
+func (wc *workChildren) Event(e zk.Event) (bool, error) {
 	switch e.Type {
 
 	case zk.EventNodeChildrenChanged:
 		children, _, ch, err := wc.zcli.conn.ChildrenW(wc.path)
 		if err != nil {
-			klog.Errorf("rewatch value path [%s] fail:%s", wc.path, err)
-			wc.handler(wc.path, nil, true)
-			return Stop
+			return Stop, fmt.Errorf("rewatch children path [%s] fail:%s", wc.path, err)
 		}
 		wc.children = children
 		wc.ch = ch
-		wc.handler(wc.path, wc.children, false)
-		return Continue
+		wc.handler(wc.path, wc.children)
+		return Continue, nil
 
 	default:
 		children, _, ch, err := wc.zcli.conn.ChildrenW(wc.path)
 		if err != nil {
-			klog.Errorf("rewatch value path [%s] fail:%s", wc.path, err)
 			if wc.zcli.IsConnect() {
-				wc.handler(wc.path, nil, true)
-				return Stop
+				return Stop, fmt.Errorf("rewatch children path [%s] fail:%s", wc.path, err)
 			}
 			// !import event connect, but conn is closed, should wait reconnected
-			return Continue
+			return Continue, nil
 		}
 
 		wc.ch = ch
 		if !CompareSlice(wc.children, children) {
 			wc.children = children
-			wc.handler(wc.path, wc.children, false)
+			wc.handler(wc.path, wc.children)
 		}
-		return Continue
+		return Continue, nil
 	}
 }
 
 // WatchChildren watch children
-func (z *ZkClient) WatchChildren(path string, handler HandlerChildren) (err error) {
+func (z *ZkClient) WatchChildren(path string, handler HandlerChildren) error {
 	if !z.isConnect {
-		err = ErrClientDisConnect
-		return
+		return ErrClientDisConnect
 	}
 
 	if b, e := z.IsExists(path); !b || e != nil {
@@ -227,8 +226,10 @@ func (z *ZkClient) WatchChildren(path string, handler HandlerChildren) (err erro
 
 	children, _, ch, err := z.conn.ChildrenW(path)
 	if err != nil {
-		return
+		return fmt.Errorf("path [%s] childrenw error:%+v", path, err)
 	}
+	// first invoke handler
+	handler(path, children)
 
 	wc := &workChildren{
 		basework: &basework{
@@ -243,7 +244,5 @@ func (z *ZkClient) WatchChildren(path string, handler HandlerChildren) (err erro
 	}
 	wc.cb = wc
 
-	go wc.run()
-
-	return nil
+	return wc.watch()
 }

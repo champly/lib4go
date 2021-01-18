@@ -1,6 +1,8 @@
 package zookeeper
 
 import (
+	"fmt"
+	"sync/atomic"
 	"time"
 
 	"github.com/go-zookeeper/zk"
@@ -13,10 +15,11 @@ type ZkClient struct {
 	*option
 	servers   []string
 	timeout   time.Duration
-	stopCh    <-chan struct{}
+	stopCh    chan struct{}
 	conn      *zk.Conn
 	eventChan <-chan zk.Event
 	isConnect bool
+	started   int32
 }
 
 // New new zk client
@@ -25,32 +28,38 @@ func New(servers []string, timeout time.Duration, opts ...Option) (*ZkClient, er
 		option:  DefaultOption(),
 		servers: servers,
 		timeout: timeout,
-		stopCh:  make(<-chan struct{}),
+		stopCh:  make(chan struct{}),
 	}
 
 	for _, opt := range opts {
 		opt(client.option)
 	}
 
-	if err := client.connect(); err != nil {
-		return nil, err
-	}
-
-	err := WarpperTimeout(func() {
-		for !client.IsConnect() {
-			time.Sleep(time.Millisecond * 10)
-		}
-	}, client.connectTimeout)
-	if err != nil {
-		return nil, errors.Wrapf(err, "connect server {%+v} fail:%v", client.servers, err)
-	}
-
 	return client, nil
 }
 
 // Start connect zk
-func (z *ZkClient) Start(ch <-chan struct{}) error {
+func (z *ZkClient) Start(ch chan struct{}) error {
+	if z.started > 0 {
+		return fmt.Errorf("zk client not repeat start")
+	}
+	atomic.AddInt32(&z.started, 1)
+
+	if err := z.connect(); err != nil {
+		return err
+	}
+
+	err := WarpperTimeout(func() {
+		for !z.IsConnect() {
+			time.Sleep(time.Millisecond * 10)
+		}
+	}, z.connectTimeout)
+	if err != nil {
+		return errors.Wrapf(err, "connect server {%+v} fail:%v", z.servers, err)
+	}
+
 	<-ch
+
 	return z.stop()
 }
 
@@ -120,10 +129,16 @@ func (z *ZkClient) eventReceive() {
 
 // stop zk client
 func (z *ZkClient) stop() error {
+	if z.started < 1 {
+		return fmt.Errorf("client not start or already closed")
+	}
+
+	atomic.AddInt32(&z.started, -1)
 	z.isConnect = false
 	if z.conn != nil {
 		z.conn.Close()
 	}
+	close(z.stopCh)
 	return nil
 }
 

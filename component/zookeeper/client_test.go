@@ -20,6 +20,10 @@ func TestNewClient(t *testing.T) {
 		}
 	}()
 
+	for !zk.IsConnect() {
+		time.Sleep(time.Second * 1)
+	}
+
 	path := "/a/b/c/d"
 	value := "中文测试"
 	if err = zk.CreatePersistentNode(path, value); err != nil {
@@ -45,20 +49,37 @@ func TestNewClient(t *testing.T) {
 	// t.Log(zk.CreatePersistentSeqNode("/a3", "永久有序节点"))
 	// t.Log(zk.CreateTempSeqNode("/a4", "临时序节点"))
 
-	// t.Log(zk.IsExists("/abc"))
+	t.Log(zk.CreatePersistentNode("/abc/a", ""))
 
-	err = zk.WatchValue("/abc/a", func(path, data string, isEnd bool) {
-		klog.Infoln("------------> data change:", path, data, isEnd)
-	})
-	if err != nil {
-		klog.Errorln(err)
+	done1 := make(chan struct{}, 0)
+	go func() {
+		err = zk.WatchValue("/abc/a", func(path, data string) {
+			klog.Infoln("------------> data change:", path, data)
+		})
+		if err != nil {
+			klog.Errorln(err)
+		}
+		close(done1)
+	}()
+
+	select {
+	case <-time.After(time.Second * 1):
+	case <-done1:
 	}
 
-	err = zk.WatchChildren("/abc/a", func(path string, children []string, isEnd bool) {
-		klog.Infoln("------------> data change:", path, children, isEnd)
-	})
-	if err != nil {
-		klog.Errorln(err)
+	done2 := make(chan struct{}, 0)
+	go func() {
+		err = zk.WatchChildren("/abc/a", func(path string, children []string) {
+			klog.Infoln("------------> change change:", path, children)
+		})
+		if err != nil {
+			klog.Errorln(err)
+		}
+		close(done2)
+	}()
+	select {
+	case <-time.After(time.Second * 1):
+	case <-done2:
 	}
 
 	// time.Sleep(time.Second * 20)

@@ -6,7 +6,8 @@ import (
 	"syscall"
 )
 
-func SetupSignalHandler() <-chan struct{} {
+// SetupSignalHandler signal
+func SetupSignalHandler() chan struct{} {
 	stop := make(chan struct{})
 
 	c := make(chan os.Signal, 2)
