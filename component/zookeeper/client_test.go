@@ -1,30 +1,29 @@
 package zookeeper
 
 import (
+	"context"
 	"testing"
 	"time"
 
-	"github.com/champly/lib4go/signal"
 	"k8s.io/klog/v2"
 )
 
 func TestNewClient(t *testing.T) {
-	zk, err := New([]string{"127.0.0.1:2181"}, time.Second*5)
-	if err != nil {
-		t.Error(err)
-	}
+	ctx, cancel := context.WithCancel(context.TODO())
+	defer cancel()
 
-	if err := zk.Start(signal.SetupSignalHandler()); err != nil {
+	client, err := NewClient(ctx, []string{"127.0.0.1:2181"}, time.Second*5)
+	if err != nil {
 		t.Error(err)
 	}
 
 	path := "/a/b/c/d"
 	value := "中文测试"
-	if err = zk.CreatePersistentNode(path, value); err != nil {
+	if err = client.CreatePersistentNode(path, value); err != nil {
 		t.Error(err)
 	}
 
-	t.Log(zk.GetValue(path))
+	t.Log(client.GetValue(path))
 
 	// if err = zk.Delete("/a"); err != nil {
 	// 	t.Error(err)
@@ -34,7 +33,7 @@ func TestNewClient(t *testing.T) {
 	// 	t.Error(err)
 	// }
 
-	if err = zk.CreateTempNode("/a", "临时节点"); err != nil {
+	if err = client.CreateTempNode("/a", "临时节点"); err != nil {
 		t.Error(err)
 	}
 
@@ -43,11 +42,11 @@ func TestNewClient(t *testing.T) {
 	// t.Log(zk.CreatePersistentSeqNode("/a3", "永久有序节点"))
 	// t.Log(zk.CreateTempSeqNode("/a4", "临时序节点"))
 
-	t.Log(zk.CreatePersistentNode("/abc/a", ""))
+	t.Log(client.CreatePersistentNode("/abc/a", ""))
 
 	done1 := make(chan struct{}, 0)
 	go func() {
-		err = zk.WatchValue("/abc/a", func(path, data string) {
+		err = client.WatchValue("/abc/a", func(path, data string) {
 			klog.Infoln("------------> data change:", path, data)
 		})
 		if err != nil {
@@ -63,7 +62,7 @@ func TestNewClient(t *testing.T) {
 
 	done2 := make(chan struct{}, 0)
 	go func() {
-		err = zk.WatchChildren("/abc/a", func(path string, children []string) {
+		err = client.WatchChildren("/abc/a", func(path string, children []string) {
 			klog.Infoln("------------> change change:", path, children)
 		})
 		if err != nil {

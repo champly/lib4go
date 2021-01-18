@@ -1,8 +1,7 @@
 package zookeeper
 
 import (
-	"fmt"
-	"sync/atomic"
+	"context"
 	"time"
 
 	"github.com/go-zookeeper/zk"
@@ -13,56 +12,45 @@ import (
 // ZkClient zk client struct
 type ZkClient struct {
 	*option
+	ctx       context.Context
 	servers   []string
 	timeout   time.Duration
-	stopCh    chan struct{}
 	conn      *zk.Conn
 	eventChan <-chan zk.Event
 	isConnect bool
 	started   int32
 }
 
-// New new zk client
-func New(servers []string, timeout time.Duration, opts ...Option) (*ZkClient, error) {
+// NewClient new zk client
+func NewClient(ctx context.Context, servers []string, timeout time.Duration, opts ...Option) (*ZkClient, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	client := &ZkClient{
 		option:  DefaultOption(),
+		ctx:     ctx,
 		servers: servers,
 		timeout: timeout,
-		stopCh:  make(chan struct{}),
 	}
 
 	for _, opt := range opts {
 		opt(client.option)
 	}
 
-	return client, nil
-}
-
-// Start connect zk
-func (z *ZkClient) Start(ch chan struct{}) error {
-	if z.started > 0 {
-		return fmt.Errorf("zk client not repeat start")
-	}
-
-	if err := z.connect(); err != nil {
-		return err
+	if err := client.connect(); err != nil {
+		return nil, err
 	}
 	err := WarpperTimeout(func() {
-		for !z.IsConnect() {
+		for !client.IsConnect() {
 			time.Sleep(time.Millisecond * 10)
 		}
-	}, z.connectTimeout)
+	}, client.connectTimeout)
 	if err != nil {
-		return errors.Wrapf(err, "connect server {%+v} fail:%v", z.servers, err)
+		return nil, errors.Wrapf(err, "connect server {%+v} fail:%v", client.servers, err)
 	}
-	atomic.AddInt32(&z.started, 1)
 
-	go func() {
-		<-ch
-		z.stop()
-	}()
-
-	return nil
+	return client, nil
 }
 
 // IsConnect return is connect zk server
@@ -81,14 +69,13 @@ func (z *ZkClient) connect() error {
 		z.eventChan = eventChan
 		go z.eventReceive()
 	}
-
 	return nil
 }
 
 func (z *ZkClient) eventReceive() {
 	for {
 		select {
-		case <-z.stopCh:
+		case <-z.ctx.Done():
 			return
 		case v, ok := <-z.eventChan:
 			if !ok {
@@ -98,32 +85,32 @@ func (z *ZkClient) eventReceive() {
 
 			switch v.State {
 			case zk.StateUnknown:
-				klog.Infof("unknow state:%+v", v)
+				klog.V(5).Infof("unknow state:%+v", v)
 			case zk.StateDisconnected:
-				klog.Infof("zk {%s} disconnected", z.servers)
+				klog.V(5).Infof("zk {%s} disconnected", z.servers)
 				z.isConnect = false
 			case zk.StateConnecting:
-				klog.Infof("zk {%s} is connecting", z.servers)
+				klog.V(5).Infof("zk {%s} is connecting", z.servers)
 				z.isConnect = false
 			case zk.StateAuthFailed:
-				klog.Infof("zk {%s} auth failed", z.servers)
+				klog.V(5).Infof("zk {%s} auth failed", z.servers)
 				z.stop()
 			case zk.StateConnectedReadOnly:
-				klog.Infof("zk {%s} connected but read only", z.servers)
+				klog.V(5).Infof("zk {%s} connected but read only", z.servers)
 				z.isConnect = true
 			case zk.StateSaslAuthenticated:
-				klog.Infof("zk {%s} sas authenticated", z.servers)
+				klog.V(5).Infof("zk {%s} sas authenticated", z.servers)
 			case zk.StateExpired:
-				klog.Infof("zk {%s} state expired", z.servers)
+				klog.V(5).Infof("zk {%s} state expired", z.servers)
 				z.isConnect = false
 			case zk.StateConnected:
-				klog.Infof("zk {%s} connected", z.servers)
+				klog.V(5).Infof("zk {%s} connected", z.servers)
 				z.isConnect = true
 			case zk.StateHasSession:
-				klog.Infof("zk {%s} has session", z.servers)
+				klog.V(5).Infof("zk {%s} has session", z.servers)
 				z.isConnect = true
 			default:
-				klog.Infof("undefine state:%+v", v)
+				klog.V(5).Infof("undefine state:%+v", v)
 			}
 		}
 	}
@@ -131,16 +118,10 @@ func (z *ZkClient) eventReceive() {
 
 // stop zk client
 func (z *ZkClient) stop() error {
-	if z.started < 1 {
-		return fmt.Errorf("client not start or already closed")
-	}
-
-	atomic.AddInt32(&z.started, -1)
 	z.isConnect = false
 	if z.conn != nil {
 		z.conn.Close()
 	}
-	close(z.stopCh)
 	return nil
 }
 

@@ -21,7 +21,6 @@ type cb interface {
 
 type basework struct {
 	ch        <-chan zk.Event
-	stopCh    <-chan struct{}
 	zcli      *ZkClient
 	connected bool
 	cb        cb
@@ -37,7 +36,7 @@ func (bw *basework) watch() error {
 
 	for {
 		select {
-		case <-bw.zcli.stopCh:
+		case <-bw.zcli.ctx.Done():
 			return nil
 		default:
 		}
@@ -58,7 +57,7 @@ func (bw *basework) watch() error {
 		}
 
 		select {
-		case <-bw.zcli.stopCh:
+		case <-bw.zcli.ctx.Done():
 			return nil
 		case e, ok := <-bw.ch:
 			if !ok {
@@ -148,7 +147,6 @@ func (z *ZkClient) WatchValue(path string, handler HandlerValue) error {
 	wv := &workValue{
 		basework: &basework{
 			ch:        ch,
-			stopCh:    z.stopCh,
 			zcli:      z,
 			connected: z.IsConnect(),
 		},
@@ -234,7 +232,6 @@ func (z *ZkClient) WatchChildren(path string, handler HandlerChildren) error {
 	wc := &workChildren{
 		basework: &basework{
 			ch:        ch,
-			stopCh:    z.stopCh,
 			zcli:      z,
 			connected: z.IsConnect(),
 		},
