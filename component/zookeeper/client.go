@@ -76,6 +76,7 @@ func (z *ZkClient) eventReceive() {
 	for {
 		select {
 		case <-z.ctx.Done():
+			z.stop()
 			return
 		case v, ok := <-z.eventChan:
 			if !ok {
@@ -117,12 +118,12 @@ func (z *ZkClient) eventReceive() {
 }
 
 // stop zk client
-func (z *ZkClient) stop() error {
+func (z *ZkClient) stop() {
 	z.isConnect = false
 	if z.conn != nil {
 		z.conn.Close()
 	}
-	return nil
+	klog.Warningf("zk client %+v stoped", z.servers)
 }
 
 // // Use unit test

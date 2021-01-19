@@ -10,9 +10,11 @@ import (
 
 func TestNewClient(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.TODO())
-	defer cancel()
+	defer func() {
+		cancel()
+	}()
 
-	client, err := NewClient(ctx, []string{"127.0.0.1:2181"}, time.Second*5)
+	client, err := NewClient(ctx, []string{"10.49.18.230:2181"}, time.Second*5)
 	if err != nil {
 		t.Error(err)
 	}
@@ -25,22 +27,19 @@ func TestNewClient(t *testing.T) {
 
 	t.Log(client.GetValue(path))
 
-	// if err = zk.Delete("/a"); err != nil {
-	// 	t.Error(err)
-	// }
-
-	// if err = zk.Delete("/dubbo"); err != nil {
-	// 	t.Error(err)
-	// }
+	defer func() {
+		if err = client.Delete("/a"); err != nil {
+			t.Error(err)
+		}
+	}()
 
 	if err = client.CreateTempNode("/a", "临时节点"); err != nil {
 		t.Error(err)
 	}
-
-	// t.Log(zk.CreatePersistentNode("/a1", "永久节点"))
-	// t.Log(zk.CreateTempNode("/a2", "临时节点"))
-	// t.Log(zk.CreatePersistentSeqNode("/a3", "永久有序节点"))
-	// t.Log(zk.CreateTempSeqNode("/a4", "临时序节点"))
+	t.Log(client.CreatePersistentNode("/a/a1", "永久节点"))
+	t.Log(client.CreateTempNode("/a/a2", "临时节点"))
+	t.Log(client.CreatePersistentSeqNode("/a/a3", "永久有序节点"))
+	t.Log(client.CreateTempSeqNode("/a/a4", "临时序节点"))
 
 	t.Log(client.CreatePersistentNode("/abc/a", ""))
 
@@ -56,7 +55,7 @@ func TestNewClient(t *testing.T) {
 	}()
 
 	select {
-	case <-time.After(time.Second * 1):
+	case <-time.After(time.Second * 2):
 	case <-done1:
 	}
 
@@ -71,16 +70,7 @@ func TestNewClient(t *testing.T) {
 		close(done2)
 	}()
 	select {
-	case <-time.After(time.Second * 1):
+	case <-time.After(time.Second * 2):
 	case <-done2:
 	}
-
-	// time.Sleep(time.Second * 20)
-	// zk.Close()
-	// klog.Infoln("connected is close")
-	// time.Sleep(time.Second * 20)
-	// zk.Connect()
-	// klog.Infoln("zk reconnected")
-
-	// time.Sleep(time.Hour * 1)
 }
