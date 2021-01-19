@@ -2,7 +2,6 @@ package zookeeper
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/go-zookeeper/zk"
@@ -81,16 +80,17 @@ type workValue struct {
 
 	path    string
 	value   string
+	version int32
 	handler HandlerValue
 }
 
 func (wv *workValue) Reconnect() (bool, error) {
-	data, _, ch, err := wv.conn.GetW(wv.path)
+	data, stat, ch, err := wv.conn.GetW(wv.path)
 	if err != nil {
 		return Stop, fmt.Errorf("reconnect watch value path [%s] fail:%s", wv.path, err)
 	}
 	wv.ch = ch
-	if !strings.EqualFold(wv.value, string(data)) {
+	if wv.version != stat.Version {
 		wv.value = string(data)
 		return wv.handler(wv.path, wv.value), nil
 	}
@@ -102,16 +102,17 @@ func (wv *workValue) Event(e zk.Event) (bool, error) {
 	switch e.Type {
 
 	case zk.EventNodeDataChanged:
-		data, _, ch, err := wv.conn.GetW(wv.path)
+		data, stat, ch, err := wv.conn.GetW(wv.path)
 		if err != nil {
 			return Stop, fmt.Errorf("rewatch value path [%s] fail:%s", wv.path, err)
 		}
 		wv.value = string(data)
 		wv.ch = ch
+		wv.version = stat.Version
 		return wv.handler(wv.path, wv.value), nil
 
 	default:
-		data, _, ch, err := wv.conn.GetW(wv.path)
+		data, stat, ch, err := wv.conn.GetW(wv.path)
 		if err != nil {
 			if wv.conn.isConnect() {
 				return Stop, fmt.Errorf("rewatch value path [%s] fail:%s", wv.path, err)
@@ -121,8 +122,9 @@ func (wv *workValue) Event(e zk.Event) (bool, error) {
 		}
 
 		wv.ch = ch
-		if !strings.EqualFold(wv.value, string(data)) {
+		if wv.version != stat.Version {
 			wv.value = string(data)
+			wv.version = stat.Version
 			return wv.handler(wv.path, wv.value), nil
 		}
 
@@ -140,7 +142,7 @@ func (zc *ZkClient) WatchValue(path string, handler HandlerValue) error {
 	if err != nil {
 		return err
 	}
-	data, _, ch, err := conn.GetW(path)
+	data, stat, ch, err := conn.GetW(path)
 	if err != nil {
 		return fmt.Errorf("path [%s] getw error:%+v", path, err)
 	}
@@ -157,6 +159,7 @@ func (zc *ZkClient) WatchValue(path string, handler HandlerValue) error {
 		},
 		path:    path,
 		value:   string(data),
+		version: stat.Version,
 		handler: handler,
 	}
 	wv.cb = wv
@@ -169,17 +172,19 @@ type workChildren struct {
 
 	path     string
 	children []string
+	cversion int32
 	handler  HandlerChildren
 }
 
 func (wc *workChildren) Reconnect() (bool, error) {
-	children, _, ch, err := wc.conn.ChildrenW(wc.path)
+	children, stat, ch, err := wc.conn.ChildrenW(wc.path)
 	if err != nil {
 		return Stop, fmt.Errorf("reconnect watch children path [%s] fail:%s", wc.path, err)
 	}
 	wc.ch = ch
-	if !CompareSlice(wc.children, children) {
+	if wc.cversion != stat.Cversion {
 		wc.children = children
+		wc.cversion = stat.Cversion
 		return wc.handler(wc.path, wc.children), nil
 	}
 	return Continue, nil
@@ -189,16 +194,17 @@ func (wc *workChildren) Event(e zk.Event) (bool, error) {
 	switch e.Type {
 
 	case zk.EventNodeChildrenChanged:
-		children, _, ch, err := wc.conn.ChildrenW(wc.path)
+		children, stat, ch, err := wc.conn.ChildrenW(wc.path)
 		if err != nil {
 			return Stop, fmt.Errorf("rewatch children path [%s] fail:%s", wc.path, err)
 		}
 		wc.children = children
 		wc.ch = ch
+		wc.cversion = stat.Cversion
 		return wc.handler(wc.path, wc.children), nil
 
 	default:
-		children, _, ch, err := wc.conn.ChildrenW(wc.path)
+		children, stat, ch, err := wc.conn.ChildrenW(wc.path)
 		if err != nil {
 			if wc.conn.isConnect() {
 				return Stop, fmt.Errorf("rewatch children path [%s] fail:%s", wc.path, err)
@@ -208,7 +214,7 @@ func (wc *workChildren) Event(e zk.Event) (bool, error) {
 		}
 
 		wc.ch = ch
-		if !CompareSlice(wc.children, children) {
+		if wc.cversion != stat.Version {
 			wc.children = children
 			return wc.handler(wc.path, wc.children), nil
 		}
@@ -226,7 +232,7 @@ func (zc *ZkClient) WatchChildren(path string, handler HandlerChildren) error {
 	if err != nil {
 		return err
 	}
-	children, _, ch, err := conn.ChildrenW(path)
+	children, stat, ch, err := conn.ChildrenW(path)
 	if err != nil {
 		return fmt.Errorf("path [%s] childrenw error:%+v", path, err)
 	}
@@ -243,6 +249,7 @@ func (zc *ZkClient) WatchChildren(path string, handler HandlerChildren) error {
 		},
 		path:     path,
 		children: children,
+		cversion: stat.Cversion,
 		handler:  handler,
 	}
 	wc.cb = wc
