@@ -6,17 +6,18 @@ import (
 )
 
 // GetValue get path data
-func (z *ZkClient) GetValue(path string) (data string, version int32, err error) {
-	if !z.isConnect {
-		err = ErrClientDisConnect
+func (zc *ZkClient) GetValue(path string) (data string, version int32, err error) {
+	var conn *complexConn
+	conn, err = zc.getComplexConn()
+	if err != nil {
 		return
 	}
 
 	var stat *zk.Stat
 	var value []byte
 	e := WarpperTimeout(func() {
-		value, stat, err = z.conn.Get(path)
-	}, z.execTimeout)
+		value, stat, err = conn.Get(path)
+	}, zc.execTimeout)
 	if e != nil {
 		err = errors.Wrap(e, "get value function")
 		return
@@ -33,16 +34,17 @@ func (z *ZkClient) GetValue(path string) (data string, version int32, err error)
 }
 
 // GetChildren get children path
-func (z *ZkClient) GetChildren(path string) (children []string, version int32, err error) {
-	if !z.isConnect {
-		err = ErrClientDisConnect
+func (zc *ZkClient) GetChildren(path string) (children []string, version int32, err error) {
+	var conn *complexConn
+	conn, err = zc.getComplexConn()
+	if err != nil {
 		return
 	}
 
 	var stat *zk.Stat
 	e := WarpperTimeout(func() {
-		children, stat, err = z.conn.Children(path)
-	}, z.execTimeout)
+		children, stat, err = conn.Children(path)
+	}, zc.execTimeout)
 	if e != nil {
 		err = errors.Wrap(e, "get children function")
 		return
@@ -58,15 +60,16 @@ func (z *ZkClient) GetChildren(path string) (children []string, version int32, e
 }
 
 // IsExists judge path is exists
-func (z *ZkClient) IsExists(path string) (b bool, err error) {
-	if !z.isConnect {
-		err = ErrClientDisConnect
+func (zc *ZkClient) IsExists(path string) (b bool, err error) {
+	var conn *complexConn
+	conn, err = zc.getComplexConn()
+	if err != nil {
 		return
 	}
 
 	e := WarpperTimeout(func() {
-		b, _, err = z.conn.Exists(path)
-	}, z.execTimeout)
+		b, _, err = conn.Exists(path)
+	}, zc.execTimeout)
 	if e != nil {
 		err = errors.Wrap(e, "is exists")
 		return

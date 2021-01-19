@@ -7,28 +7,28 @@ import (
 )
 
 // Delete delete node
-func (z *ZkClient) Delete(path string) (err error) {
-	if !z.isConnect {
-		err = ErrClientDisConnect
-		return
+func (zc *ZkClient) Delete(path string) (err error) {
+	conn, err := zc.getComplexConn()
+	if err != nil {
+		return err
 	}
 
-	children, _, err := z.GetChildren(path)
+	children, _, err := zc.GetChildren(path)
 	if err != nil {
 		err = errors.Wrap(err, "delete node")
 		return
 	}
 
 	for _, ch := range children {
-		err = z.Delete(fmt.Sprintf("%s/%s", path, ch))
+		err = zc.Delete(fmt.Sprintf("%s/%s", path, ch))
 		if err != nil {
 			return err
 		}
 	}
 
 	e := WarpperTimeout(func() {
-		err = z.conn.Delete(path, -1)
-	}, z.execTimeout)
+		err = conn.Delete(path, -1)
+	}, zc.execTimeout)
 	if e != nil {
 		err = errors.Wrap(err, "delete path")
 		return

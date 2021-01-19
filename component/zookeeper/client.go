@@ -2,6 +2,7 @@ package zookeeper
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/go-zookeeper/zk"
@@ -12,13 +13,18 @@ import (
 // ZkClient zk client struct
 type ZkClient struct {
 	*option
+	index    int
+	connPool []*complexConn
+	timeout  time.Duration
+	l        sync.Mutex
+}
+
+type complexConn struct {
+	*zk.Conn
 	ctx       context.Context
 	servers   []string
-	timeout   time.Duration
-	conn      *zk.Conn
-	eventChan <-chan zk.Event
-	isConnect bool
-	started   int32
+	eventCh   <-chan zk.Event
+	connected bool
 }
 
 // NewClient new zk client
@@ -29,8 +35,6 @@ func NewClient(ctx context.Context, servers []string, timeout time.Duration, opt
 
 	client := &ZkClient{
 		option:  DefaultOption(),
-		ctx:     ctx,
-		servers: servers,
 		timeout: timeout,
 	}
 
@@ -38,49 +42,64 @@ func NewClient(ctx context.Context, servers []string, timeout time.Duration, opt
 		opt(client.option)
 	}
 
-	if err := client.connect(); err != nil {
+	if err := client.connect(ctx, servers); err != nil {
 		return nil, err
-	}
-	err := WarpperTimeout(func() {
-		for !client.IsConnect() {
-			time.Sleep(time.Millisecond * 10)
-		}
-	}, client.connectTimeout)
-	if err != nil {
-		return nil, errors.Wrapf(err, "connect server {%+v} fail:%v", client.servers, err)
 	}
 
 	return client, nil
 }
 
-// IsConnect return is connect zk server
-func (z *ZkClient) IsConnect() bool {
-	return z.isConnect
-}
-
 // connect zk service
-func (z *ZkClient) connect() error {
-	if z.conn == nil {
-		conn, eventChan, err := zk.Connect(z.servers, z.timeout)
+func (zc *ZkClient) connect(ctx context.Context, servers []string) error {
+	zc.connPool = make([]*complexConn, 0, zc.connectNum)
+	for i := 0; i < zc.connectNum; i++ {
+		conn, eventCh, err := zk.Connect(servers, zc.timeout)
 		if err != nil {
 			return errors.Wrap(err, "connect zk servers fail")
 		}
-		z.conn = conn
-		z.eventChan = eventChan
-		go z.eventReceive()
+		cc := &complexConn{
+			Conn:    conn,
+			ctx:     ctx,
+			servers: servers,
+			eventCh: eventCh,
+		}
+		go cc.eventReceive()
+
+		err = WarpperTimeout(func() {
+			for !cc.isConnect() {
+				time.Sleep(time.Millisecond * 10)
+			}
+		}, zc.connectTimeout)
+		if err != nil {
+			return errors.Wrapf(err, "connect server {%+v} fail:%v", servers, err)
+		}
+
+		zc.connPool = append(zc.connPool, cc)
 	}
 	return nil
 }
 
-func (z *ZkClient) eventReceive() {
+func (zc *ZkClient) getComplexConn() (*complexConn, error) {
+	zc.l.Lock()
+	defer zc.l.Unlock()
+
+	conn := zc.connPool[zc.index]
+	zc.index = (zc.index + 1) % zc.connectNum
+	if !conn.isConnect() {
+		return nil, ErrClientDisConnect
+	}
+	return conn, nil
+}
+
+func (cc *complexConn) eventReceive() {
 	for {
 		select {
-		case <-z.ctx.Done():
-			z.stop()
+		case <-cc.ctx.Done():
+			cc.close()
 			return
-		case v, ok := <-z.eventChan:
+		case v, ok := <-cc.eventCh:
 			if !ok {
-				z.isConnect = false
+				cc.connected = false
 				return
 			}
 
@@ -88,28 +107,28 @@ func (z *ZkClient) eventReceive() {
 			case zk.StateUnknown:
 				klog.V(5).Infof("unknow state:%+v", v)
 			case zk.StateDisconnected:
-				klog.V(5).Infof("zk {%s} disconnected", z.servers)
-				z.isConnect = false
+				klog.V(5).Infof("zk {%s} disconnected", cc.servers)
+				cc.connected = false
 			case zk.StateConnecting:
-				klog.V(5).Infof("zk {%s} is connecting", z.servers)
-				z.isConnect = false
+				klog.V(5).Infof("zk {%s} is connecting", cc.servers)
+				cc.connected = false
 			case zk.StateAuthFailed:
-				klog.V(5).Infof("zk {%s} auth failed", z.servers)
-				z.stop()
+				klog.V(5).Infof("zk {%s} auth failed", cc.servers)
+				cc.close()
 			case zk.StateConnectedReadOnly:
-				klog.V(5).Infof("zk {%s} connected but read only", z.servers)
-				z.isConnect = true
+				klog.V(5).Infof("zk {%s} connected but read only", cc.servers)
+				cc.connected = true
 			case zk.StateSaslAuthenticated:
-				klog.V(5).Infof("zk {%s} sas authenticated", z.servers)
+				klog.V(5).Infof("zk {%s} sas authenticated", cc.servers)
 			case zk.StateExpired:
-				klog.V(5).Infof("zk {%s} state expired", z.servers)
-				z.isConnect = false
+				klog.V(5).Infof("zk {%s} state expired", cc.servers)
+				cc.connected = false
 			case zk.StateConnected:
-				klog.V(5).Infof("zk {%s} connected", z.servers)
-				z.isConnect = true
+				klog.V(5).Infof("zk {%s} connected", cc.servers)
+				cc.connected = true
 			case zk.StateHasSession:
-				klog.V(5).Infof("zk {%s} has session", z.servers)
-				z.isConnect = true
+				klog.V(5).Infof("zk {%s} has session", cc.servers)
+				cc.connected = true
 			default:
 				klog.V(5).Infof("undefine state:%+v", v)
 			}
@@ -117,22 +136,16 @@ func (z *ZkClient) eventReceive() {
 	}
 }
 
-// stop zk client
-func (z *ZkClient) stop() {
-	z.isConnect = false
-	if z.conn != nil {
-		z.conn.Close()
-	}
-	klog.Warningf("zk client %+v stoped", z.servers)
+// isConnect return is connect zk server
+func (cc *complexConn) isConnect() bool {
+	return cc.connected
 }
 
-// // Use unit test
-// func (z *ZkClient) Close() {
-// 	z.conn.Close()
-// 	z.isConnect = false
-// 	z.conn = nil
-// }
-
-// func (z *ZkClient) Connect() {
-// 	z.connect()
-// }
+// stop zk client
+func (cc *complexConn) close() {
+	cc.connected = false
+	if cc.Conn != nil {
+		cc.Conn.Close()
+	}
+	klog.Warningf("zk client %+v stoped", cc.servers)
+}

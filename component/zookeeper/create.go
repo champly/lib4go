@@ -10,10 +10,10 @@ import (
 )
 
 // CreatePersistentNode create persistent node with data
-func (z *ZkClient) CreatePersistentNode(path string, data string) (err error) {
-	if !z.isConnect {
-		err = ErrClientDisConnect
-		return
+func (zc *ZkClient) CreatePersistentNode(path string, data string) (err error) {
+	conn, err := zc.getComplexConn()
+	if err != nil {
+		return err
 	}
 
 	if strings.EqualFold(path, "/") {
@@ -25,7 +25,7 @@ func (z *ZkClient) CreatePersistentNode(path string, data string) (err error) {
 		return
 	}
 
-	b, e := z.IsExists(path)
+	b, e := zc.IsExists(path)
 	if e != nil {
 		err = errors.Wrap(e, "create persistent node")
 		return
@@ -34,13 +34,13 @@ func (z *ZkClient) CreatePersistentNode(path string, data string) (err error) {
 		return nil
 	}
 
-	if err = z.CreatePersistentNode(filepath.Dir(path), ""); err != nil {
+	if err = zc.CreatePersistentNode(filepath.Dir(path), ""); err != nil {
 		return err
 	}
 
 	e = WarpperTimeout(func() {
-		_, err = z.conn.Create(path, []byte(data), int32(0), zk.WorldACL(zk.PermAll))
-	}, z.execTimeout)
+		_, err = conn.Create(path, []byte(data), int32(0), zk.WorldACL(zk.PermAll))
+	}, zc.execTimeout)
 	if e != nil {
 		err = errors.Wrap(e, "create persistent node")
 		return
@@ -54,13 +54,13 @@ func (z *ZkClient) CreatePersistentNode(path string, data string) (err error) {
 }
 
 // CreateTempNode create temp node
-func (z *ZkClient) CreateTempNode(path string, data string) (err error) {
-	if !z.isConnect {
-		err = ErrClientDisConnect
-		return
+func (zc *ZkClient) CreateTempNode(path string, data string) (err error) {
+	conn, err := zc.getComplexConn()
+	if err != nil {
+		return err
 	}
 
-	b, e := z.IsExists(path)
+	b, e := zc.IsExists(path)
 	if e != nil {
 		err = errors.Wrap(e, "create temp node")
 		return
@@ -69,13 +69,13 @@ func (z *ZkClient) CreateTempNode(path string, data string) (err error) {
 		return nil
 	}
 
-	if err = z.CreatePersistentNode(filepath.Dir(path), ""); err != nil {
+	if err = zc.CreatePersistentNode(filepath.Dir(path), ""); err != nil {
 		return
 	}
 
 	e = WarpperTimeout(func() {
-		_, err = z.conn.Create(path, []byte(data), zk.FlagEphemeral, zk.WorldACL(zk.PermAll))
-	}, z.execTimeout)
+		_, err = conn.Create(path, []byte(data), zk.FlagEphemeral, zk.WorldACL(zk.PermAll))
+	}, zc.execTimeout)
 	if e != nil {
 		err = errors.Wrap(e, "create temp node")
 		return
@@ -89,19 +89,19 @@ func (z *ZkClient) CreateTempNode(path string, data string) (err error) {
 }
 
 // CreatePersistentSeqNode create persistent seq node
-func (z *ZkClient) CreatePersistentSeqNode(path string, data string) (rpath string, err error) {
-	if !z.isConnect {
-		err = ErrClientDisConnect
+func (zc *ZkClient) CreatePersistentSeqNode(path string, data string) (rpath string, err error) {
+	conn, err := zc.getComplexConn()
+	if err != nil {
 		return
 	}
 
-	if err = z.CreatePersistentNode(filepath.Dir(path), ""); err != nil {
+	if err = zc.CreatePersistentNode(filepath.Dir(path), ""); err != nil {
 		return
 	}
 
 	e := WarpperTimeout(func() {
-		rpath, err = z.conn.Create(path, []byte(data), zk.FlagSequence, zk.WorldACL(zk.PermAll))
-	}, z.execTimeout)
+		rpath, err = conn.Create(path, []byte(data), zk.FlagSequence, zk.WorldACL(zk.PermAll))
+	}, zc.execTimeout)
 	if e != nil {
 		err = errors.Wrap(e, "create persistent seq node")
 		return
@@ -115,19 +115,19 @@ func (z *ZkClient) CreatePersistentSeqNode(path string, data string) (rpath stri
 }
 
 // CreateTempSeqNode create temp seq node
-func (z *ZkClient) CreateTempSeqNode(path string, data string) (rpath string, err error) {
-	if !z.isConnect {
-		err = ErrClientDisConnect
+func (zc *ZkClient) CreateTempSeqNode(path string, data string) (rpath string, err error) {
+	conn, err := zc.getComplexConn()
+	if err != nil {
 		return
 	}
 
-	if err = z.CreatePersistentNode(filepath.Dir(path), ""); err != nil {
+	if err = zc.CreatePersistentNode(filepath.Dir(path), ""); err != nil {
 		return
 	}
 
 	e := WarpperTimeout(func() {
-		rpath, err = z.conn.Create(path, []byte(data), zk.FlagEphemeral|zk.FlagSequence, zk.WorldACL(zk.PermAll))
-	}, z.execTimeout)
+		rpath, err = conn.Create(path, []byte(data), zk.FlagEphemeral|zk.FlagSequence, zk.WorldACL(zk.PermAll))
+	}, zc.execTimeout)
 	if e != nil {
 		err = errors.Wrap(e, "create temp seq node")
 		return
