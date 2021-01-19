@@ -8,11 +8,15 @@ import (
 	"github.com/go-zookeeper/zk"
 )
 
+var (
+	baseWorkInterval = time.Millisecond * 200
+)
+
 // HandlerValue handler watch value event
-type HandlerValue func(path string, data string)
+type HandlerValue func(path string, data string) (continueWatch bool)
 
 // HandlerChildren handler watch children event
-type HandlerChildren func(path string, children []string)
+type HandlerChildren func(path string, children []string) (continueWatch bool)
 
 type cb interface {
 	Reconnect() (isContinue bool, err error)
@@ -30,7 +34,7 @@ func (bw *basework) watch() error {
 	var (
 		isContinue bool
 		err        error
-		t          = time.NewTimer(time.Microsecond * 100)
+		t          = time.NewTicker(baseWorkInterval)
 	)
 	defer t.Stop()
 
@@ -88,7 +92,7 @@ func (wv *workValue) Reconnect() (bool, error) {
 	wv.ch = ch
 	if !strings.EqualFold(wv.value, string(data)) {
 		wv.value = string(data)
-		wv.handler(wv.path, wv.value)
+		return wv.handler(wv.path, wv.value), nil
 	}
 
 	return Continue, nil
@@ -104,8 +108,7 @@ func (wv *workValue) Event(e zk.Event) (bool, error) {
 		}
 		wv.value = string(data)
 		wv.ch = ch
-		wv.handler(wv.path, wv.value)
-		return Continue, nil
+		return wv.handler(wv.path, wv.value), nil
 
 	default:
 		data, _, ch, err := wv.conn.GetW(wv.path)
@@ -120,7 +123,7 @@ func (wv *workValue) Event(e zk.Event) (bool, error) {
 		wv.ch = ch
 		if !strings.EqualFold(wv.value, string(data)) {
 			wv.value = string(data)
-			wv.handler(wv.path, wv.value)
+			return wv.handler(wv.path, wv.value), nil
 		}
 
 		return Continue, nil
@@ -142,7 +145,9 @@ func (zc *ZkClient) WatchValue(path string, handler HandlerValue) error {
 		return fmt.Errorf("path [%s] getw error:%+v", path, err)
 	}
 	// first invoke handler
-	handler(path, string(data))
+	if !handler(path, string(data)) {
+		return nil
+	}
 
 	wv := &workValue{
 		basework: &basework{
@@ -175,7 +180,7 @@ func (wc *workChildren) Reconnect() (bool, error) {
 	wc.ch = ch
 	if !CompareSlice(wc.children, children) {
 		wc.children = children
-		wc.handler(wc.path, wc.children)
+		return wc.handler(wc.path, wc.children), nil
 	}
 	return Continue, nil
 }
@@ -190,8 +195,7 @@ func (wc *workChildren) Event(e zk.Event) (bool, error) {
 		}
 		wc.children = children
 		wc.ch = ch
-		wc.handler(wc.path, wc.children)
-		return Continue, nil
+		return wc.handler(wc.path, wc.children), nil
 
 	default:
 		children, _, ch, err := wc.conn.ChildrenW(wc.path)
@@ -206,7 +210,7 @@ func (wc *workChildren) Event(e zk.Event) (bool, error) {
 		wc.ch = ch
 		if !CompareSlice(wc.children, children) {
 			wc.children = children
-			wc.handler(wc.path, wc.children)
+			return wc.handler(wc.path, wc.children), nil
 		}
 		return Continue, nil
 	}
@@ -227,7 +231,9 @@ func (zc *ZkClient) WatchChildren(path string, handler HandlerChildren) error {
 		return fmt.Errorf("path [%s] childrenw error:%+v", path, err)
 	}
 	// first invoke handler
-	handler(path, children)
+	if !handler(path, children) {
+		return nil
+	}
 
 	wc := &workChildren{
 		basework: &basework{

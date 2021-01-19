@@ -8,9 +8,12 @@ import (
 
 // Delete delete node
 func (zc *ZkClient) Delete(path string) (err error) {
-	conn, err := zc.getComplexConn()
+	b, err := zc.IsExists(path)
 	if err != nil {
 		return err
+	}
+	if !b {
+		return nil
 	}
 
 	children, _, err := zc.GetChildren(path)
@@ -26,6 +29,10 @@ func (zc *ZkClient) Delete(path string) (err error) {
 		}
 	}
 
+	conn, err := zc.getComplexConn()
+	if err != nil {
+		return err
+	}
 	e := WarpperTimeout(func() {
 		err = conn.Delete(path, -1)
 	}, zc.execTimeout)

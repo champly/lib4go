@@ -51,35 +51,20 @@ func TestNewClient(t *testing.T) {
 
 	t.Log(client.CreatePersistentNode("/abc/a", ""))
 
-	done1 := make(chan struct{}, 0)
-	go func() {
-		err = client.WatchValue("/abc/a", func(path, data string) {
-			klog.Infoln("------------> data change:", path, data)
-		})
-		if err != nil {
-			klog.Errorln(err)
-		}
-		close(done1)
-	}()
-
-	select {
-	case <-time.After(time.Second * 2):
-	case <-done1:
+	err = client.WatchValue("/abc/a", func(path, data string) bool {
+		klog.Infoln("------------> data change:", path, data)
+		return false
+	})
+	if err != nil {
+		klog.Errorln(err)
 	}
 
-	done2 := make(chan struct{}, 0)
-	go func() {
-		err = client.WatchChildren("/abc/a", func(path string, children []string) {
-			klog.Infoln("------------> change change:", path, children)
-		})
-		if err != nil {
-			klog.Errorln(err)
-		}
-		close(done2)
-	}()
-	select {
-	case <-time.After(time.Second * 2):
-	case <-done2:
+	err = client.WatchChildren("/abc/a", func(path string, children []string) bool {
+		klog.Infoln("------------> change change:", path, children)
+		return false
+	})
+	if err != nil {
+		klog.Errorln(err)
 	}
 }
 
@@ -109,7 +94,7 @@ func TestWatchChildren(t *testing.T) {
 	}()
 
 	childrenPrefix := "a"
-	num := 1000
+	num := 30
 	children := make([]string, 0, num)
 
 	for i := 0; i < num; i++ {
@@ -118,8 +103,9 @@ func TestWatchChildren(t *testing.T) {
 
 	actualChildren := []string{}
 	go func() {
-		err := client.WatchChildren(path, func(path string, children []string) {
+		err := client.WatchChildren(path, func(path string, children []string) bool {
 			actualChildren = children
+			return true
 		})
 		if err != nil {
 			t.Error(err)
