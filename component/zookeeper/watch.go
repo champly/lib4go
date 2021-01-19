@@ -68,7 +68,7 @@ func (bw *basework) watch() error {
 			}
 			isContinue, err = bw.cb.Event(e)
 			if err != nil || !isContinue {
-				return nil
+				return err
 			}
 		case <-t.C:
 		}
