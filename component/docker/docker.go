@@ -177,7 +177,7 @@ func (d *DClient) CreateContainer(repository, imageName, version string, volumen
 	}
 
 	netConfig := &network.NetworkingConfig{}
-	resp, err := d.cli.ContainerCreate(context.Background(), config, hostConfig, netConfig, nil, cname)
+	resp, err := d.cli.ContainerCreate(context.Background(), config, hostConfig, netConfig, cname)
 	if err != nil {
 		return "", err
 	}

@@ -66,7 +66,8 @@ func TestDownload(t *testing.T) {
 	t.Log(env.RepositoryCache)
 
 	// a, f, err := dl.DownloadTo("stable/nginx-ingress", "1.41.3", "")
-	a, p, err := dl.DownloadTo("stable/nginx-ingress", "1.41.3", "")
+	os.MkdirAll("./Charts", 0755)
+	a, p, err := dl.DownloadTo("stable/nginx-ingress", "1.41.3", "./Charts")
 	if err != nil {
 		t.Error(err)
 		return
