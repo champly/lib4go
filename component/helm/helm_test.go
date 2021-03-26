@@ -16,7 +16,7 @@ func TestDownload(t *testing.T) {
 	env := cli.New()
 	cfg := &repo.Entry{
 		Name: "stable",
-		URL:  "https://charts.helm.sh/stable",
+		URL:  "http://mirror.azure.cn/kubernetes/charts/",
 	}
 	os.MkdirAll(env.RepositoryCache, os.ModePerm)
 
