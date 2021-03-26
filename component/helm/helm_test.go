@@ -18,7 +18,6 @@ func TestDownload(t *testing.T) {
 		Name: "stable",
 		URL:  "http://mirror.azure.cn/kubernetes/charts/",
 	}
-	os.MkdirAll(env.RepositoryCache, os.ModePerm)
 
 	// download repo index
 	rp, err := repo.NewChartRepository(cfg, getter.All(env))
@@ -26,16 +25,14 @@ func TestDownload(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	t.Log("repo.CachePath:", rp.CachePath)
-	index, err := rp.DownloadIndexFile()
+	_, err = rp.DownloadIndexFile()
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	t.Log("DownloadIndexFile:", index)
 
 	// update repo
-	repoFile := env.RepositoryCache + "/repositories.yaml"
+	repoFile := env.RepositoryConfig
 	t.Log("repoFile:", repoFile)
 	b, err := ioutil.ReadFile(repoFile)
 	if err != nil && !os.IsNotExist(err) {
