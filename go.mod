@@ -13,17 +13,21 @@ require (
 	github.com/golang/protobuf v1.4.3
 	github.com/googleapis/gnostic v0.5.3 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
+	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/mailru/easyjson v0.7.2 // indirect
 	github.com/olivere/elastic v6.2.34+incompatible
 	github.com/onsi/ginkgo v1.14.1
 	github.com/onsi/gomega v1.10.2
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/sftp v1.11.0
+	github.com/prometheus/client_golang v1.7.1
 	github.com/tealeg/xlsx v1.0.5
+	go.etcd.io/etcd v0.5.0-alpha.5.0.20200910180754-dd1b699fc489
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/oauth2 v0.0.0-20201208152858-08078c50e5b5 // indirect
 	golang.org/x/text v0.3.4
 	golang.org/x/time v0.0.0-20201208040808-7e3f01d25324 // indirect
+	google.golang.org/grpc v1.31.0
 	helm.sh/helm/v3 v3.5.3
 	istio.io/client-go v1.8.1
 	k8s.io/api v0.20.2
@@ -38,4 +42,5 @@ require (
 replace (
 	github.com/docker/distribution => github.com/docker/distribution v0.0.0-20191216044856-a8371794149d
 	github.com/docker/docker => github.com/moby/moby v17.12.0-ce-rc1.0.20200618181300-9dc6525e6118+incompatible
+	google.golang.org/grpc => google.golang.org/grpc v1.29.1
 )
