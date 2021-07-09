@@ -1,9 +1,9 @@
-![Go](https://github.com/champly/lib4go/workflows/Go/badge.svg)
-
 # lib4go
 
 [![Open in Visual Studio
 Code](https://open.vscode.dev/badges/open-in-vscode.svg)](https://open.vscode.dev/champly/lib4go)
+![Go](https://github.com/champly/lib4go/workflows/Go/badge.svg)
+
 
 golang libray
 
