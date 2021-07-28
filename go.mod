@@ -9,7 +9,7 @@ require (
 	github.com/fortytw2/leaktest v1.3.0 // indirect
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-zookeeper/zk v1.0.2
-	github.com/gogo/protobuf v1.3.1
+	github.com/gogo/protobuf v1.3.2
 	github.com/golang/protobuf v1.4.3
 	github.com/googleapis/gnostic v0.5.3 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
@@ -23,17 +23,16 @@ require (
 	github.com/prometheus/client_golang v1.7.1
 	github.com/tealeg/xlsx v1.0.5
 	go.etcd.io/etcd v0.5.0-alpha.5.0.20200910180754-dd1b699fc489
-	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
+	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
 	golang.org/x/oauth2 v0.0.0-20201208152858-08078c50e5b5 // indirect
 	golang.org/x/text v0.3.4
-	golang.org/x/time v0.0.0-20201208040808-7e3f01d25324 // indirect
 	google.golang.org/grpc v1.31.0
-	helm.sh/helm/v3 v3.5.3
+	helm.sh/helm/v3 v3.6.3
 	istio.io/client-go v1.8.1
-	k8s.io/api v0.20.2
-	k8s.io/apimachinery v0.20.2
-	k8s.io/client-go v0.20.2
-	k8s.io/klog/v2 v2.4.0
+	k8s.io/api v0.21.0
+	k8s.io/apimachinery v0.21.0
+	k8s.io/client-go v0.21.0
+	k8s.io/klog/v2 v2.8.0
 	mosn.io/pkg v0.0.0-20200729115159-2bd74f20be0f
 	sigs.k8s.io/controller-runtime v0.7.0
 	sigs.k8s.io/yaml v1.2.0
