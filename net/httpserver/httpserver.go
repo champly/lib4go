@@ -91,7 +91,6 @@ func (h *HttpServer) before(r *http.Request) {
 }
 
 func (h *HttpServer) after(r *http.Request) {
-	fmt.Println(r.Header)
 	sid := r.Header.Get("__call_chain__")
 	v := r.Header.Get("__call_chain_v__")
 	if v != "" {
