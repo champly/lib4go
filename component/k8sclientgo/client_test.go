@@ -26,7 +26,7 @@ func TestNewClient(t *testing.T) {
 		return
 	}
 	externalSharedInformerFactory := externalversions.NewSharedInformerFactory(externalversionsCli, 0)
-	crdInformer := externalSharedInformerFactory.Apiextensions().V1beta1().CustomResourceDefinitions()
+	crdInformer := externalSharedInformerFactory.Apiextensions().V1().CustomResourceDefinitions()
 	crdInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			// us, ok := obj.(*unstructured.Unstructured)
@@ -107,6 +107,7 @@ func TestNewClient(t *testing.T) {
 		t.Error(err)
 		return
 	}
+	t.Log("get crd count: ", len(list))
 	for _, item := range list {
 		t.Logf("get crd %s -----> %s", item.Spec.Group, item.Name)
 	}
