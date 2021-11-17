@@ -5,7 +5,10 @@ import (
 	"time"
 
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
+	clientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	"k8s.io/apiextensions-apiserver/pkg/client/informers/externalversions"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
 )
@@ -16,6 +19,32 @@ func TestNewClient(t *testing.T) {
 		t.Errorf("build client err:%+v", err)
 		return
 	}
+
+	externalversionsCli, err := clientset.NewForConfig(client.KubeRestConfig)
+	if err != nil {
+		t.Errorf("build externalversions client err: %+v", err)
+		return
+	}
+	externalSharedInformerFactory := externalversions.NewSharedInformerFactory(externalversionsCli, 0)
+	crdInformer := externalSharedInformerFactory.Apiextensions().V1beta1().CustomResourceDefinitions()
+	crdInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
+			// us, ok := obj.(*unstructured.Unstructured)
+			// if ok {
+			//     crd := &apiextensions.CustomResourceDefinition{}
+			//     if err := runtime.DefaultUnstructuredConverter.FromUnstructured(us.UnstructuredContent(), crd); err != nil {
+			//         t.Errorf("unstructured ds failed:%+v", err)
+			//     }
+			//     t.Logf("add crd:%s/%s", crd.Namespace, crd.Name)
+			// }
+		},
+	})
+	// metaclient, err := metadata.NewForConfig(client.KubeRestConfig)
+	// if err != nil {
+	//     t.Errorf("build meta client err:%+v", err)
+	//     return
+	// }
+	// metadatainformer.NewSharedInformerFactory(metaclient, 0)
 
 	// obj, err := client.KubeDynamicClient.Resource(networkingv1beta1.SchemeGroupVersion.WithResource("destinationrules")).Namespace(v1.NamespaceAll).List(context.TODO(), metav1.ListOptions{Limit: 20})
 	// if err != nil {
@@ -68,6 +97,19 @@ func TestNewClient(t *testing.T) {
 
 	client.SharedInformerFactory.Start(stopCh)
 	client.DynamicSharedInformerFactory.Start(stopCh)
+	externalSharedInformerFactory.Start(stopCh)
+
+	for !crdInformer.Informer().HasSynced() {
+		time.Sleep(time.Millisecond * 100)
+	}
+	list, err := crdInformer.Lister().List(labels.Everything())
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	for _, item := range list {
+		t.Logf("get crd %s -----> %s", item.Spec.Group, item.Name)
+	}
 
 	for !informer.HasSynced() {
 		time.Sleep(time.Millisecond * 100)
