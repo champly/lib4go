@@ -21,7 +21,10 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/sftp v1.11.0
 	github.com/prometheus/client_golang v1.7.1
+	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/tealeg/xlsx v1.0.5
+	github.com/tklauser/go-sysconf v0.3.9 // indirect
+	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	go.etcd.io/etcd v0.5.0-alpha.5.0.20200910180754-dd1b699fc489
 	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
 	golang.org/x/oauth2 v0.0.0-20201208152858-08078c50e5b5 // indirect
