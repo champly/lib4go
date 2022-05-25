@@ -129,7 +129,7 @@ func (cli *Client) Start(ctx context.Context) error {
 	cli.cancel = cancel
 
 	var err error
-	ch := make(chan struct{}, 0)
+	ch := make(chan struct{})
 	go func() {
 		err = cli.CtrlRtManager.Start(ctx)
 		if err != nil {
@@ -138,12 +138,10 @@ func (cli *Client) Start(ctx context.Context) error {
 		close(ch)
 	}()
 
-	select {
-	case <-ch:
-		// controller-manager stop
-		close(cli.stopCh)
-		return err
-	}
+	<-ch
+	// controller-manager stop
+	close(cli.stopCh)
+	return err
 }
 
 // Stop stop client with timeout 30s

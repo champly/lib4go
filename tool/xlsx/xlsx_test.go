@@ -6,10 +6,10 @@ func TestBuildData(t *testing.T) {
 	fileName := "demo.xlsx"
 	header := []string{"姓名", "年龄", "性别"}
 	list := [][]string{
-		[]string{"ChamPly", "19", "M"},
-		[]string{"Tom", "18", "W"},
-		[]string{"CC", "", "S"},
-		[]string{"C", "S", ""},
+		{"ChamPly", "19", "M"},
+		{"Tom", "18", "W"},
+		{"CC", "", "S"},
+		{"C", "S", ""},
 	}
 
 	err := WriteData(list, header, fileName)
@@ -26,11 +26,11 @@ func TestReadData(t *testing.T) {
 	}
 
 	dataInput := [][]string{
-		[]string{"姓名", "年龄", "性别"},
-		[]string{"ChamPly", "19", "M"},
-		[]string{"Tom", "18", "W"},
-		[]string{"CC", "", "S"},
-		[]string{"C", "S", ""},
+		{"姓名", "年龄", "性别"},
+		{"ChamPly", "19", "M"},
+		{"Tom", "18", "W"},
+		{"CC", "", "S"},
+		{"C", "S", ""},
 	}
 
 	for i, in1 := range data {

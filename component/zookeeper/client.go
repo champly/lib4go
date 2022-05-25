@@ -145,7 +145,7 @@ func (cc *complexConn) isConnect() bool {
 func (cc *complexConn) close() {
 	cc.connected = false
 	if cc.Conn != nil {
-		cc.Conn.Close()
+		cc.Close()
 	}
 	klog.Warningf("zk client %+v stoped", cc.servers)
 }

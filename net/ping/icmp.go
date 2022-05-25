@@ -31,7 +31,7 @@ func GetDefaultICMP(seq uint16) ICMP {
 func CheckSum(data []byte) uint16 {
 	var (
 		sum    uint32
-		length int = len(data)
+		length = len(data)
 		index  int
 	)
 	for length > 1 {

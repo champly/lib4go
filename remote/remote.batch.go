@@ -39,7 +39,6 @@ func NewBatchRemoteClient(serverList []*ServerInfo) (*BatchRemoteClient, error) 
 			rclient.l.Lock()
 			rclient.client = append(rclient.client, c)
 			rclient.l.Unlock()
-			return
 		}(serverInfo, i)
 	}
 	rclient.wg.Wait()
@@ -190,5 +189,4 @@ func (b *BatchRemoteClient) Close() {
 		}(c)
 	}
 	b.wg.Wait()
-	return
 }

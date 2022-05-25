@@ -28,7 +28,7 @@ type MultiClient struct {
 func NewMultiClient(rebuildInterval time.Duration, clusterCfgMgr ClusterConfigurationManager) (*MultiClient, error) {
 	multiCli := &MultiClient{
 		rebuildInterval: rebuildInterval,
-		stopCh:          make(chan struct{}, 0),
+		stopCh:          make(chan struct{}),
 		clusterCfgMgr:   clusterCfgMgr,
 		clusterCliMap:   map[string]*Client{},
 		InitHandlerList: []InitHandler{},
@@ -246,7 +246,6 @@ func (mc *MultiClient) Stop() {
 		}(cli)
 	}
 	wg.Wait()
-	return
 }
 
 func (mc *MultiClient) autoRebuild() {

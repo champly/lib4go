@@ -149,6 +149,9 @@ func (db *SysDB) Executes(query string, args ...interface{}) (lastInsertID, affe
 		return
 	}
 	lastInsertID, err = result.LastInsertId()
+	if err != nil {
+		return
+	}
 	affectedRow, err = result.RowsAffected()
 	return
 }

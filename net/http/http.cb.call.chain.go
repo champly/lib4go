@@ -71,6 +71,11 @@ func (c *CallChainCb) Before(req *http.Request) {
 }
 
 func (c *CallChainCb) After(req *http.Request, resp *http.Response, err error) {
+	if err != nil {
+		// TODO: print log
+		fmt.Println(err)
+	}
+
 	v := req.Header.Get("__call_chain_v__")
 	if v == "" {
 		return

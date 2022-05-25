@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	JobNotExist = errors.New("job not exist")
+	ErrJobNotExist = errors.New("job not exist")
 )
 
 type JenkinsClient struct {
@@ -49,7 +49,7 @@ func (j *JenkinsClient) Build(jobName string, params map[string]string) (queueID
 	job, err := j.client.GetJob(jobName)
 	if err != nil {
 		if err.Error() == "404" {
-			return 0, JobNotExist
+			return 0, ErrJobNotExist
 		}
 		return 0, err
 	}
@@ -77,7 +77,7 @@ func (j *JenkinsClient) GetLog(jobName string, buildID int64) (string, error) {
 	job, err := j.client.GetJob(jobName)
 	if err != nil {
 		if err.Error() == "404" {
-			return "", JobNotExist
+			return "", ErrJobNotExist
 		}
 		return "", err
 	}
@@ -106,7 +106,7 @@ func (j *JenkinsClient) GetAllBuildList(jobName string) ([]BuildInfo, error) {
 	job, err := j.client.GetJob(jobName)
 	if err != nil {
 		if err.Error() == "404" {
-			return nil, JobNotExist
+			return nil, ErrJobNotExist
 		}
 		return nil, err
 	}
@@ -132,7 +132,7 @@ func (j *JenkinsClient) GetConfig(jobName string) (config string, err error) {
 	job, err := j.client.GetJob(jobName)
 	if err != nil {
 		if err.Error() == "404" {
-			return "", JobNotExist
+			return "", ErrJobNotExist
 		}
 		return "", err
 	}

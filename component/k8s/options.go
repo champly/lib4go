@@ -23,7 +23,7 @@ type option struct {
 
 func buildDefaultCfg() *option {
 	return &option{
-		stopCh: make(chan struct{}, 0),
+		stopCh: make(chan struct{}),
 		ctrlRtManagerOpts: manager.Options{
 			LeaderElection:         false,
 			MetricsBindAddress:     "0",

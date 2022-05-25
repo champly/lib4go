@@ -53,7 +53,7 @@ func buildClientV3(c *Config) (client *clientv3.Client, err error) {
 	}
 
 	// NOTE: Client relies on nil tlsConfig
-	if len(c.CertFile) == 0 && len(c.CertFile) == 0 && len(c.TrustedCAFile) == 0 {
+	if len(c.CertFile) == 0 && len(c.TrustedCAFile) == 0 {
 		tlsConfig = nil
 	}
 
@@ -105,7 +105,7 @@ func (s *store) Create(ctx context.Context, key, val string) error {
 
 func (s *store) Get(ctx context.Context, key string) (val []byte, err error) {
 	key = path.Join(s.pathPrefix, key)
-	resp, err := s.client.KV.Get(ctx, key)
+	resp, err := s.client.Get(ctx, key)
 	if err != nil {
 		return nil, err
 	}
@@ -138,13 +138,13 @@ func (s *store) Update(ctx context.Context, key string, val string) error {
 }
 
 func (s *store) Delete(ctx context.Context, key string) error {
-	key = path.Join(s.pathPrefix, key)
+	// key = path.Join(s.pathPrefix, key)
 
 	panic("not implement")
 }
 
 func (s *store) List(ctx context.Context, key string) (out interface{}, err error) {
-	key = path.Join(s.pathPrefix, key)
+	// key = path.Join(s.pathPrefix, key)
 
 	// s.client.KV.Get
 	panic("not implement")

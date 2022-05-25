@@ -143,9 +143,9 @@ func RsaVerify(src string, sign string, publicKey string, mode string) (pass boo
 	return true, nil
 }
 
-//GenRsaKey RSA公钥/私钥对生成，默认长度1024
+//GenRsaKey RSA公钥/私钥对生成，默认长度4096
 func GenRsaKey() (privKey, pubKey string, err error) {
-	var bits = 1024
+	var bits = 4096
 	// 生成私钥文件
 	privateKey, err := rsa.GenerateKey(rand.Reader, bits)
 	if err != nil {

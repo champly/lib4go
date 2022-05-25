@@ -20,13 +20,9 @@ func SliceByteToString(b []byte) string {
 func SliceByteConcat(dst *[]byte, res interface{}) (err error) {
 	switch v := res.(type) {
 	case []byte:
-		for _, item := range v {
-			*dst = append(*dst, item)
-		}
+		*dst = append(*dst, v...)
 	case string:
-		for _, item := range StringToSliceByte(v) {
-			*dst = append(*dst, item)
-		}
+		*dst = append(*dst, StringToSliceByte(v)...)
 	case uint8:
 		*dst = append(*dst, v)
 	case uint16:

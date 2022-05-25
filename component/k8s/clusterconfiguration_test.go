@@ -43,7 +43,6 @@ func TestClusterCfgWithCM(t *testing.T) {
 	for _, cls := range clsList {
 		t.Logf("%s found", cls.GetName())
 	}
-	return
 }
 
 func TestClusterCfgWithDir(t *testing.T) {
@@ -78,7 +77,6 @@ func TestClusterCfgWithDir(t *testing.T) {
 	for _, cls := range clsList {
 		t.Logf("%s found", cls.GetName())
 	}
-	return
 }
 
 func buildTmpWithKubeConfig() error {

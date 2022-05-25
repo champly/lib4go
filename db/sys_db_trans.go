@@ -25,6 +25,9 @@ func (t *SysDBTransaction) Executes(query string, args ...interface{}) (lastInse
 		return
 	}
 	lastInsertID, err = result.LastInsertId()
+	if err != nil {
+		return
+	}
 	affectedRow, err = result.RowsAffected()
 	return
 }

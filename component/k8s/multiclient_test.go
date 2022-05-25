@@ -139,6 +139,10 @@ func TestMultiCluster(t *testing.T) {
 			},
 		),
 	)
+	if err != nil {
+		t.Error(err)
+		return
+	}
 
 	t.Run("without autoRebuild", func(t *testing.T) {
 		multi, err := NewMultiClient(0, clusterMgr)
@@ -304,5 +308,4 @@ func clean() {
 	for _, file := range files {
 		os.Remove(file.Name())
 	}
-	return
 }

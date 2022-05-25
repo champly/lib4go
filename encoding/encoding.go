@@ -30,9 +30,8 @@ func UTF82GBK(s string) (string, error) {
 }
 
 func EncodeUCS2(s string) string {
-	list := []rune(s)
 	var r string
-	for _, item := range list {
+	for _, item := range s {
 		r += fmt.Sprintf("%04x", int(item))
 	}
 	return r

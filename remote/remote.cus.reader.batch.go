@@ -33,7 +33,6 @@ func NewBatchCusReader(serverList []*ServerInfo) (*BatchCusReader, error) {
 			rclient.l.Lock()
 			rclient.client = append(rclient.client, c)
 			rclient.l.Unlock()
-			return
 		}(serverInfo, i)
 	}
 	rclient.wg.Wait()

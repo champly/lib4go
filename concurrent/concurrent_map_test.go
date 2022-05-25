@@ -78,10 +78,6 @@ func TestGet(t *testing.T) {
 		t.Error("ok should be true for item stored within the map.")
 	}
 
-	if &elephant == nil {
-		t.Error("expecting an element, not null.")
-	}
-
 	if elephant.name != "elephant" {
 		t.Error("item was modified.")
 	}
@@ -725,5 +721,9 @@ func TestSetIfAbsCb(t *testing.T) {
 	}, tt)
 	if err == nil {
 		t.Error("test error, but err is nil")
+		return
+	}
+	if !ok {
+		t.Error("test error")
 	}
 }

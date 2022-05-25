@@ -19,7 +19,7 @@ type Debounce struct {
 
 func New(debounceAfter, debounceMax time.Duration, pushFn func(req Request)) *Debounce {
 	d := &Debounce{
-		ch:            make(chan Request, 0),
+		ch:            make(chan Request),
 		debounceAfter: debounceAfter,
 		debounceMax:   debounceMax,
 		pushFn:        pushFn,

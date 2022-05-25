@@ -143,7 +143,7 @@ func TestNewClient(t *testing.T) {
 			return
 		}
 
-		p.ObjectMeta.Labels = map[string]string{"aa": "bb"}
+		p.Labels = map[string]string{"aa": "bb"}
 		err = cli.UpdateObj(p)
 		if err != nil {
 			t.Error(err)
