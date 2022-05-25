@@ -6,8 +6,7 @@ import (
 	"path"
 	"time"
 
-	grpcprom "github.com/grpc-ecosystem/go-grpc-prometheus"
-	"go.etcd.io/etcd/clientv3"
+	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/pkg/transport"
 	"google.golang.org/grpc"
 	"k8s.io/klog/v2"
@@ -59,8 +58,9 @@ func buildClientV3(c *Config) (client *clientv3.Client, err error) {
 
 	dialOptions := []grpc.DialOption{
 		grpc.WithBlock(),
-		grpc.WithUnaryInterceptor(grpcprom.UnaryClientInterceptor),
-		grpc.WithStreamInterceptor(grpcprom.StreamClientInterceptor),
+		// grpcprom "github.com/grpc-ecosystem/go-grpc-prometheus"
+		// grpc.WithUnaryInterceptor(grpcprom.UnaryClientInterceptor),
+		// grpc.WithStreamInterceptor(grpcprom.StreamClientInterceptor),
 	}
 
 	cfg := clientv3.Config{

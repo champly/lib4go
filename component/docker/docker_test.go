@@ -5,7 +5,7 @@ import (
 )
 
 func TestGetAllImage(t *testing.T) {
-	client, err := NewClient("10.12.192.130", 2376, "v1.39")
+	client, err := NewClient("127.0.0.1", 2376, "v1.39")
 	if err != nil {
 		t.Error(err)
 	}
@@ -20,7 +20,7 @@ func TestGetAllImage(t *testing.T) {
 }
 
 func TestGetAllContainer(t *testing.T) {
-	client, err := NewClient("10.12.192.130", 2376, "v1.39")
+	client, err := NewClient("127.0.0.1", 2376, "v1.39")
 	if err != nil {
 		t.Error(err)
 	}
@@ -35,7 +35,7 @@ func TestGetAllContainer(t *testing.T) {
 }
 
 func TestPullImage(t *testing.T) {
-	client, err := NewClient("10.12.192.130", 2376, "v1.39")
+	client, err := NewClient("127.0.0.1", 2376, "v1.39")
 	if err != nil {
 		t.Error(err)
 	}
@@ -43,7 +43,7 @@ func TestPullImage(t *testing.T) {
 }
 
 func TestCreateContainer(t *testing.T) {
-	client, err := NewClient("10.12.192.130", 2376, "v1.39")
+	client, err := NewClient("127.0.0.1", 2376, "v1.39")
 	if err != nil {
 		t.Error(err)
 	}
@@ -61,7 +61,7 @@ func TestCreateContainer(t *testing.T) {
 }
 
 // func TestTag(t *testing.T) {
-// client, err := NewClient("10.12.192.130", 2376, "v1.39")
+// client, err := NewClient("127.0.0.1", 2376, "v1.39")
 // if err != nil {
 // t.Error(err)
 // }
