@@ -1,24 +1,24 @@
 package encoding
 
 import (
-	"strings"
-
 	"github.com/ghodss/yaml"
-	"github.com/gogo/protobuf/types"
-	"github.com/golang/protobuf/jsonpb"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
-// JSON2Struct json string transform types.Struct
-func JSON2Struct(str string) (*types.Struct, error) {
-	result := &types.Struct{}
+// JSON2Struct json string transform structpb.Struct
+func JSON2Struct(str string) (*structpb.Struct, error) {
+	// "github.com/gogo/protobuf/types"
+	// result := &types.Struct{}
+	result := &structpb.Struct{}
 
-	m := jsonpb.Unmarshaler{}
-	err := m.Unmarshal(strings.NewReader(str), result)
+	m := protojson.UnmarshalOptions{}
+	err := m.Unmarshal([]byte(str), result)
 	return result, err
 }
 
-// YAML2Struct yaml string transform types.Struct
-func YAML2Struct(str string) (*types.Struct, error) {
+// YAML2Struct yaml string transform structpb.Struct
+func YAML2Struct(str string) (*structpb.Struct, error) {
 	b, err := yaml.YAMLToJSON([]byte(str))
 	if err != nil {
 		return nil, err
