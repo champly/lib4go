@@ -8,12 +8,13 @@ import (
 
 // SliceByteToString []byte to string
 func SliceByteToString(b []byte) string {
-	bh := (*reflect.SliceHeader)(unsafe.Pointer(&b))
-	sh := reflect.StringHeader{
-		Data: bh.Data,
-		Len:  bh.Len,
-	}
-	return *(*string)(unsafe.Pointer(&sh))
+	p := unsafe.Pointer((*reflect.StringHeader)(unsafe.Pointer(&b)).Data)
+
+	var s string
+	hdr := (*reflect.StringHeader)(unsafe.Pointer(&s))
+	hdr.Data = uintptr(p)
+	hdr.Len = len(s)
+	return s
 }
 
 // SliceByteConcat concat interface{} to []byte
