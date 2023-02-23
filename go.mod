@@ -19,7 +19,7 @@ require (
 	go.etcd.io/etcd v3.3.27+incompatible
 	go.etcd.io/etcd/client/v3 v3.5.4
 	golang.org/x/crypto v0.0.0-20220829220503-c86fa9a7ed90
-	golang.org/x/text v0.3.7
+	golang.org/x/text v0.3.8
 	google.golang.org/grpc v1.49.0
 	google.golang.org/protobuf v1.28.1
 	helm.sh/helm/v3 v3.9.4
