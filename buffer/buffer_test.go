@@ -22,7 +22,6 @@ func (d *demo) New() interface{} {
 }
 
 func (d *demo) Reset(buf interface{}) {
-	return
 }
 
 func TestRegistry(t *testing.T) {

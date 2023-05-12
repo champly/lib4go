@@ -46,6 +46,7 @@ func TestCreateContainer(t *testing.T) {
 	client, err := NewClient("127.0.0.1", 2376, "v1.39")
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	ports := map[int][]int{
 		8080:  {8080},

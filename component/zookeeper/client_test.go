@@ -75,6 +75,7 @@ func TestWatchChildren(t *testing.T) {
 	client, err := NewClient(ctx, servers, time.Second*5)
 	if err != nil {
 		t.Error(err)
+		return
 	}
 
 	path := "/watchchildren"

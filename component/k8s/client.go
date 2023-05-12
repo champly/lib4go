@@ -263,7 +263,7 @@ func (cli *Client) UpdateObjStatus(obj client.Object, opts ...client.UpdateOptio
 }
 
 // UpdateObjStatusWithTimeout update status obj with timeout
-func (cli *Client) UpdateObjStatusWithTimeout(timeout time.Duration, obj client.Object, opts ...client.UpdateOption) error {
+func (cli *Client) UpdateObjStatusWithTimeout(timeout time.Duration, obj client.Object, opts ...client.SubResourceUpdateOption) error {
 	if !cli.HasSynced() {
 		return errors.New("client not start or informer not synced")
 	}
