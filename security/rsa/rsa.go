@@ -13,7 +13,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 )
@@ -143,7 +142,7 @@ func RsaVerify(src string, sign string, publicKey string, mode string) (pass boo
 	return true, nil
 }
 
-//GenRsaKey RSA公钥/私钥对生成，默认长度4096
+// GenRsaKey RSA公钥/私钥对生成，默认长度4096
 func GenRsaKey() (privKey, pubKey string, err error) {
 	// 生成私钥文件
 	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
@@ -164,7 +163,7 @@ func GenRsaKey() (privKey, pubKey string, err error) {
 	if err != nil {
 		return "", "", err
 	}
-	b, err := ioutil.ReadFile("private.pem")
+	b, err := os.ReadFile("private.pem")
 	if err != nil {
 		fmt.Print(err)
 	}
@@ -187,7 +186,7 @@ func GenRsaKey() (privKey, pubKey string, err error) {
 	if err != nil {
 		return "", "", err
 	}
-	b, err = ioutil.ReadFile("public.pem")
+	b, err = os.ReadFile("public.pem")
 	if err != nil {
 		fmt.Print(err)
 	}

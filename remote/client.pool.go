@@ -164,7 +164,6 @@ func loopDeleteSSHClient(closeCh chan struct{}) {
 					continue
 				}
 
-				// log.Printf("自动回收ssh")
 				model.client.Close()
 				delete(sshClientPool, host)
 			}
@@ -187,7 +186,6 @@ func loopDeleteSftpClient(closeCh chan struct{}) {
 					continue
 				}
 
-				// log.Printf("自动回收sftp")
 				model.client.Close()
 				delete(sftpClientPool, host)
 			}

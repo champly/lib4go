@@ -3,7 +3,7 @@ package encoding
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"strconv"
 	"strings"
 
@@ -13,7 +13,7 @@ import (
 
 func GBK2UTF8(s string) (string, error) {
 	reader := transform.NewReader(bytes.NewReader([]byte(s)), simplifiedchinese.GBK.NewDecoder())
-	d, err := ioutil.ReadAll(reader)
+	d, err := io.ReadAll(reader)
 	if err != nil {
 		return "", err
 	}
@@ -22,7 +22,7 @@ func GBK2UTF8(s string) (string, error) {
 
 func UTF82GBK(s string) (string, error) {
 	reader := transform.NewReader(bytes.NewReader([]byte(s)), simplifiedchinese.GBK.NewEncoder())
-	d, err := ioutil.ReadAll(reader)
+	d, err := io.ReadAll(reader)
 	if err != nil {
 		return "", err
 	}

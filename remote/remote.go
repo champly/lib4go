@@ -3,7 +3,6 @@ package remote
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"strings"
@@ -111,7 +110,7 @@ func (r *RemoteClient) ScpDir(localDir, remoteDir string) error {
 	localDir = strings.TrimRight(localDir, "/")
 	remoteDir = strings.TrimRight(remoteDir, "/")
 
-	dir, err := ioutil.ReadDir(localDir)
+	dir, err := os.ReadDir(localDir)
 	if err != nil {
 		return err
 	}
@@ -146,7 +145,7 @@ func (r *RemoteClient) CopyFile(localFile string, remoteFile string) error {
 		return fmt.Errorf("remote read file %s fail:%s", remoteFile, err)
 	}
 
-	b, err := ioutil.ReadAll(rf)
+	b, err := io.ReadAll(rf)
 	if err != nil {
 		return err
 	}
